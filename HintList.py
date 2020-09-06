@@ -75,13 +75,13 @@ conditional_always = {
     'Market 10 Big Poes':           lambda world: world.big_poe_count > 3,
     'Deku Theater Skull Mask':      lambda world: world.hint_dist == 'tournament' and world.open_kakariko == 'closed',
     'Deku Theater Mask of Truth':   lambda world: not world.complete_mask_quest,
-    'Song from Ocarina of Time':    lambda world: world.bridge not in ('stones', 'dungeons') and world.shuffle_ganon_bosskey not in ('lacs_stones', 'lacs_dungeons'),
-    'HF Ocarina of Time Item':      lambda world: world.bridge not in ('stones', 'dungeons') and world.shuffle_ganon_bosskey not in ('lacs_stones', 'lacs_dungeons'),
-    'Sheik in Kakariko':            lambda world: world.bridge not in ('medallions', 'dungeons') and world.shuffle_ganon_bosskey not in ('lacs_medallions', 'lacs_dungeons'),
+    'Song from Ocarina of Time':    lambda world: (world.bridge not in ('stones', 'dungeons') and world.shuffle_ganon_bosskey not in ('lacs_stones', 'lacs_dungeons')) or world.triforce_hunt,
+    'HF Ocarina of Time Item':      lambda world: (world.bridge not in ('stones', 'dungeons') and world.shuffle_ganon_bosskey not in ('lacs_stones', 'lacs_dungeons')) or world.triforce_hunt,
+    'Sheik in Kakariko':            lambda world: (world.bridge not in ('medallions', 'dungeons') and world.shuffle_ganon_bosskey not in ('lacs_medallions', 'lacs_dungeons')) or world.triforce_hunt,
     'DMT Biggoron':                 lambda world: world.logic_earliest_adult_trade != 'claim_check' or world.logic_latest_adult_trade != 'claim_check',
-    'Kak 50 Gold Skulltula Reward': lambda world: world.bridge != 'tokens' or world.bridge_tokens < 50,
-    'Kak 40 Gold Skulltula Reward': lambda world: world.bridge != 'tokens' or world.bridge_tokens < 40,
-    'Kak 30 Gold Skulltula Reward': lambda world: world.bridge != 'tokens' or world.bridge_tokens < 30,
+    'Kak 50 Gold Skulltula Reward': lambda world: world.bridge != 'tokens' or world.bridge_tokens < 50 or world.triforce_hunt,
+    'Kak 40 Gold Skulltula Reward': lambda world: world.bridge != 'tokens' or world.bridge_tokens < 40 or world.triforce_hunt,
+    'Kak 30 Gold Skulltula Reward': lambda world: world.bridge != 'tokens' or world.bridge_tokens < 30 or world.triforce_hunt,
 }
 
 
