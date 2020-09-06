@@ -2,13 +2,16 @@
     {
         "region_name": "Ice Cavern Beginning",
         "dungeon": "Ice Cavern",
+        "locations": {
+            "Fairy Pot": "has_bottle"
+        },
         "exits": {
             "Zoras Fountain": "True",
             "Ice Cavern Map Room": "
                 is_adult or can_use(Dins_Fire) or
                 (has_explosives and (can_use(Sticks) or can_use(Slingshot) or Kokiri_Sword))",
-            "Ice Cavern Compass Room": "is_adult",
-            "Ice Cavern Iron Boots Region": "has_blue_fire"
+            "Ice Cavern Compass Room": "is_adult and Blue_Fire",
+            "Ice Cavern Iron Boots Region": "Blue_Fire"
         }
     },
     {
@@ -16,7 +19,7 @@
         "dungeon": "Ice Cavern",
         "locations": {
             "Ice Cavern MQ Map Chest": "
-                has_blue_fire and
+                Blue_Fire and
                 (is_adult or can_use(Sticks) or Kokiri_Sword or can_use_projectile)",
             "Blue Fire": "is_adult and has_bottle"
         }
@@ -27,18 +30,19 @@
         "locations": {
             "Ice Cavern MQ Iron Boots Chest": "is_adult",
             "Sheik in Ice Cavern": "is_adult",
-            "GS Ice Cavern MQ Ice Block": "is_adult or can_child_attack",
-            "GS Ice Cavern MQ Scarecrow": "
-                can_use(Scarecrow) or (can_use(Hover_Boots) and can_use(Longshot))"
+            "Ice Cavern MQ GS Ice Block": "is_adult or can_child_attack",
+            "Ice Cavern MQ GS Scarecrow": "
+                can_use(Scarecrow) or (Hover_Boots and can_use(Longshot)) or
+                (logic_ice_mq_scarecrow and is_adult)"
         }
     },
     {
         "region_name": "Ice Cavern Compass Room",
         "dungeon": "Ice Cavern",
         "locations": {
-            "Ice Cavern MQ Compass Chest": "has_blue_fire",
+            "Ice Cavern MQ Compass Chest": "True",
             "Ice Cavern MQ Freestanding PoH": "has_explosives",
-            "GS Ice Cavern MQ Red Ice": "has_blue_fire and can_play(Song_of_Time)"
+            "Ice Cavern MQ GS Red Ice": "can_play(Song_of_Time)"
         }
     }
 ]

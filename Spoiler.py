@@ -2,7 +2,6 @@ from version import __version__
 from collections import OrderedDict
 from Item import Item
 from Hints import gossipLocations
-from ItemPool import boss_location_names
 import re
 import random
 import json
@@ -18,7 +17,7 @@ HASH_ICONS = [
     'Boomerang',
     'Lens of Truth',
     'Beans',
-    'Hammer',
+    'Megaton Hammer',
     'Bottled Fish',
     'Bottled Milk',
     'Mask of Truth',

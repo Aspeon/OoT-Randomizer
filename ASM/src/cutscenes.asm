@@ -21,7 +21,7 @@ override_great_fairy_cutscene:
     ; Handle upgrade fairies
     addu    t4, a0, t2
     lbu     t5, 0x1D28 (t4) ; t5 = chest flag for this fairy
-    bnez    t5, @@return ; Use default behavior if the item is already obtained
+    bnez    t5, @@refills ; Just refills if the item is already obtained
     nop
     li      t5, 1
     sb      t5, 0x1D28 (t4) ; Mark item as obtained
@@ -34,7 +34,7 @@ override_great_fairy_cutscene:
     sllv    t4, t4, t2 ; t4 = fairy item mask
     lbu     t5, 0x0EF2 (t3) ; t5 = fairy item flags
     and     t6, t5, t4
-    bnez    t6, @@return ; Use default behavior if the item is already obtained
+    bnez    t6, @@refills ; Just refills if the item is already obtained
     nop
     or      t6, t5, t4
     sb      t6, 0x0EF2 (t3) ; Mark item as obtained
@@ -49,10 +49,15 @@ override_great_fairy_cutscene:
     jal     push_delayed_item
     move    a0, t2
 
-    li      v0, 0 ; Prevent fairy animation
+@@refills:
+
+    jal     health_and_magic_refill
+    nop
 
 @@return:
     lw      ra, 0x10 (sp)
+    li      v0, 0 ; Prevent fairy animation
+
     jr      ra
     addiu   sp, sp, 0x18
 
@@ -335,13 +340,81 @@ burning_kak:
     jr      ra
     addiu   sp, sp, 0x18
 
-; Set the Obtained Epona Flag after winning Ingo's 2nd race
+; In ER, set the "Obtained Epona" Flag after winning Ingo's 2nd race
 ingo_race_win:
-    li      at, SAVE_CONTEXT
-    lb      t0, 0x0ED6 (at)
-    ori     t0, t0, 0x01     ; "Obtained Epona" Flag
-    sb      t0, 0x0ED6 (at)
-    li      t0, 0
+    lb      t0, OVERWORLD_SHUFFLED
+    beqz    t0, @@return                ; only apply this patch in Overworld ER
 
+    la      at, SAVE_CONTEXT
+    lb      t0, 0x0ED6(at)
+    ori     t0, t0, 0x01                ; "Obtained Epona" Flag
+    sb      t0, 0x0ED6(at)
+
+@@return:
+    li      t0, 0
     jr      ra
-    lw      t9, 0x24 (s0)    ; Displaced Code
+    sw      t9, 0x0000(t7)              ; Displaced Code
+
+; In ER, Rectify the "Getting Caught By Gerudo" entrance index if necessary, based on the age and current scene
+; Adult should be placed at the fortress entrance when getting caught in the fortress without a hookshot, instead of being thrown in the valley
+; Child should always be thrown in the stream when caught in the valley, and placed at the fortress entrance from valley when caught in the fortress
+; Registers safe to override: t3-t8
+gerudo_caught_entrance:
+    lb      t3, OVERWORLD_SHUFFLED
+    beqz    t3, @@return                ; only rectify entrances in Overworld ER
+
+    la      t3, GLOBAL_CONTEXT
+    lh      t3, 0x00A4(t3)              ; current scene number
+    li      t4, 0x005A                  ; Gerudo Valley scene number
+    bne     t3, t4, @@fortress          ; if we are not in the valley, then we are in the fortress
+
+    li      t3, 0x01A5                  ; else, use the thrown out in valley entrance index, even if you have a hookshot
+    sh      t3, 0x1E1A(at)
+    b       @@return
+
+@@fortress:
+    la      t4, SAVE_CONTEXT
+    lw      t4, 0x0004(t4)              ; current age
+    bnez    t4, @@fortress_entrance     ; if child, change to the fortress entrance no matter what, even if you have a hookshot
+
+    lh      t3, 0x1E1A(at)              ; original entrance index
+    li      t4, 0x01A5                  ; "Thrown out of Fortress" entrance index
+    beq     t3, t4, @@fortress_entrance ; if adult would be thrown in the valley, change to the fortress entrance (no hookshot)
+    nop
+    b       @@return                    ; else, keep the jail entrance index (owned hookshot)
+
+@@fortress_entrance:
+    li      t3, 0x0129                  ; Fortress from Valley entrance index
+    sh      t3, 0x1E1A(at)
+
+@@return:
+    jr      ra
+    nop
+
+; Override Demo_Effect init data for medallions
+demo_effect_medal_init:
+    sh      t8, 0x17C(a0)      ; displaced code
+
+    la      t0, GLOBAL_CONTEXT
+    lh      t1, 0xA4(t0)       ; current scene
+    li      t2, 0x02
+    bne     t1, t2, @@return   ; skip overrides if scene isn't "Inside Jabu Jabu's Belly"
+
+    lw      t1, 0x138(a0)      ; pointer to actor overlay table entry
+    lw      t1, 0x10(t1)       ; actor overlay loaded ram address
+    addiu   t2, t1, 0x3398
+    sw      t2, 0x184(a0)      ; override update routine to child spritiual stone (8092E058)
+    li      t3, 1
+    sh      t3, 0x17C(a0)      ; set cutscene NPC id to child ruto
+
+    addiu   sp, sp, -0x18
+    sw      ra, 0x14(sp)
+    li      a1, 0.1
+    jal     0x80020F88         ; set actor scale to 0.1
+    nop
+    lw      ra, 0x14(sp)
+    addiu   sp, sp, 0x18
+
+@@return:
+    jr      ra
+    nop

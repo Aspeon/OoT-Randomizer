@@ -4,12 +4,13 @@ import logging
 import os
 import struct
 import random
+from collections import OrderedDict
 
 from HintList import getHint, getHintGroup, Hint, hintExclusions
-from ItemPool import eventlocations
+from Item import MakeEventItem
 from Messages import update_message_by_id
-from Playthrough import Playthrough
-from TextBox import lineWrap
+from Search import Search
+from TextBox import line_wrap
 from Utils import random_choices
 
 
@@ -33,51 +34,66 @@ class GossipText():
 
 
     def __str__(self):
-        return get_raw_text(lineWrap(colorText(self)))
+        return get_raw_text(line_wrap(colorText(self)))
 
+#   Abbreviations
+#       DMC     Death Mountain Crater
+#       DMT     Death Mountain Trail
+#       GC      Goron City
+#       GV      Gerudo Valley
+#       HC      Hyrule Castle
+#       HF      Hyrule Field
+#       KF      Kokiri Forest
+#       LH      Lake Hylia
+#       LW      Lost Woods
+#       SFM     Sacred Forest Meadow
+#       ToT     Temple of Time
+#       ZD      Zora's Domain
+#       ZF      Zora's Fountain
+#       ZR      Zora's River
 
 gossipLocations = {
-    0x0405: GossipStone('Death Mountain Crater (Bombable Wall)','Death Mountain Crater Gossip Stone'),
-    0x0404: GossipStone('Death Mountain Trail (Biggoron)',      'Death Mountain Trail Gossip Stone'),
-    0x041A: GossipStone('Desert Colossus (Spirit Temple)',      'Desert Colossus Gossip Stone'),
-    0x0414: GossipStone('Dodongos Cavern (Bombable Wall)',      'Dodongos Cavern Gossip Stone'),
-    0x0411: GossipStone('Gerudo Valley (Waterfall)',            'Gerudo Valley Gossip Stone'),
-    0x0415: GossipStone('Goron City (Maze)',                    'Goron City Maze Gossip Stone'),
-    0x0419: GossipStone('Goron City (Medigoron)',               'Goron City Medigoron Gossip Stone'),
-    0x040A: GossipStone('Graveyard (Shadow Temple)',            'Graveyard Gossip Stone'),
-    0x0412: GossipStone('Hyrule Castle (Malon)',                'Hyrule Castle Malon Gossip Stone'),
-    0x040B: GossipStone('Hyrule Castle (Rock Wall)',            'Hyrule Castle Rock Wall Gossip Stone'),
-    0x0413: GossipStone('Hyrule Castle (Storms Grotto)',        'Castle Storms Grotto Gossip Stone'),
-    0x041B: GossipStone('Hyrule Field (Hammer Grotto)',         'Field Valley Grotto Gossip Stone'),
-    0x041F: GossipStone('Kokiri Forest (Deku Tree Left)',       'Deku Tree Gossip Stone (Left)'),
-    0x0420: GossipStone('Kokiri Forest (Deku Tree Right)',      'Deku Tree Gossip Stone (Right)'),
-    0x041E: GossipStone('Kokiri Forest (Storms)',               'Kokiri Forest Gossip Stone'),
-    0x0403: GossipStone('Lake Hylia (Lab)',                     'Lake Hylia Lab Gossip Stone'),
-    0x040F: GossipStone('Lake Hylia (Southeast Corner)',        'Lake Hylia Gossip Stone (Southeast)'),
-    0x0408: GossipStone('Lake Hylia (Southwest Corner)',        'Lake Hylia Gossip Stone (Southwest)'),
-    0x041D: GossipStone('Lost Woods (Bridge)',                  'Lost Woods Gossip Stone'),
-    0x0416: GossipStone('Sacred Forest Meadow (Maze Lower)',    'Sacred Forest Meadow Maze Gossip Stone (Lower)'),
-    0x0417: GossipStone('Sacred Forest Meadow (Maze Upper)',    'Sacred Forest Meadow Maze Gossip Stone (Upper)'),
-    0x041C: GossipStone('Sacred Forest Meadow (Saria)',         'Sacred Forest Meadow Saria Gossip Stone'),
-    0x0406: GossipStone('Temple of Time (Left)',                'Temple of Time Gossip Stone (Left)'),
-    0x0407: GossipStone('Temple of Time (Left-Center)',         'Temple of Time Gossip Stone (Left-Center)'),
-    0x0410: GossipStone('Temple of Time (Right)',               'Temple of Time Gossip Stone (Right)'),
-    0x040E: GossipStone('Temple of Time (Right-Center)',        'Temple of Time Gossip Stone (Right-Center)'),
-    0x0409: GossipStone('Zoras Domain (Mweep)',                 'Zoras Domain Gossip Stone'),
-    0x0401: GossipStone('Zoras Fountain (Fairy)',               'Zoras Fountain Fairy Gossip Stone'),
-    0x0402: GossipStone('Zoras Fountain (Jabu)',                'Zoras Fountain Jabu Gossip Stone'),
-    0x040D: GossipStone('Zoras River (Plateau)',                'Zoras River Plateau Gossip Stone'),
-    0x040C: GossipStone('Zoras River (Waterfall)',              'Zoras River Waterfall Gossip Stone'),
+    0x0405: GossipStone('DMC (Bombable Wall)',              'DMC Gossip Stone'),
+    0x0404: GossipStone('DMT (Biggoron)',                   'DMT Gossip Stone'),
+    0x041A: GossipStone('Colossus (Spirit Temple)',         'Colossus Gossip Stone'),
+    0x0414: GossipStone('Dodongos Cavern (Bombable Wall)',  'Dodongos Cavern Gossip Stone'),
+    0x0411: GossipStone('GV (Waterfall)',                   'GV Gossip Stone'),
+    0x0415: GossipStone('GC (Maze)',                        'GC Maze Gossip Stone'),
+    0x0419: GossipStone('GC (Medigoron)',                   'GC Medigoron Gossip Stone'),
+    0x040A: GossipStone('Graveyard (Shadow Temple)',        'Graveyard Gossip Stone'),
+    0x0412: GossipStone('HC (Malon)',                       'HC Malon Gossip Stone'),
+    0x040B: GossipStone('HC (Rock Wall)',                   'HC Rock Wall Gossip Stone'),
+    0x0413: GossipStone('HC (Storms Grotto)',               'HC Storms Grotto Gossip Stone'),
+    0x041F: GossipStone('KF (Deku Tree Left)',              'KF Deku Tree Gossip Stone (Left)'),
+    0x0420: GossipStone('KF (Deku Tree Right)',             'KF Deku Tree Gossip Stone (Right)'),
+    0x041E: GossipStone('KF (Outside Storms)',              'KF Gossip Stone'),
+    0x0403: GossipStone('LH (Lab)',                         'LH Lab Gossip Stone'),
+    0x040F: GossipStone('LH (Southeast Corner)',            'LH Gossip Stone (Southeast)'),
+    0x0408: GossipStone('LH (Southwest Corner)',            'LH Gossip Stone (Southwest)'),
+    0x041D: GossipStone('LW (Bridge)',                      'LW Gossip Stone'),
+    0x0416: GossipStone('SFM (Maze Lower)',                 'SFM Maze Gossip Stone (Lower)'),
+    0x0417: GossipStone('SFM (Maze Upper)',                 'SFM Maze Gossip Stone (Upper)'),
+    0x041C: GossipStone('SFM (Saria)',                      'SFM Saria Gossip Stone'),
+    0x0406: GossipStone('ToT (Left)',                       'ToT Gossip Stone (Left)'),
+    0x0407: GossipStone('ToT (Left-Center)',                'ToT Gossip Stone (Left-Center)'),
+    0x0410: GossipStone('ToT (Right)',                      'ToT Gossip Stone (Right)'),
+    0x040E: GossipStone('ToT (Right-Center)',               'ToT Gossip Stone (Right-Center)'),
+    0x0409: GossipStone('ZD (Mweep)',                       'ZD Gossip Stone'),
+    0x0401: GossipStone('ZF (Fairy)',                       'ZF Fairy Gossip Stone'),
+    0x0402: GossipStone('ZF (Jabu)',                        'ZF Jabu Gossip Stone'),
+    0x040D: GossipStone('ZR (Near Grottos)',                'ZR Near Grottos Gossip Stone'),
+    0x040C: GossipStone('ZR (Near Domain)',                 'ZR Near Domain Gossip Stone'),
+    0x041B: GossipStone('HF (Cow Grotto)',                  'HF Cow Grotto Gossip Stone'),
 
-    0x0430: GossipStone('Hyrule Field (Castle Moat Grotto)',    'Field West Castle Town Grotto Gossip Stone'),
-    0x0432: GossipStone('Hyrule Field (Rock Grotto)',           'Remote Southern Grotto Gossip Stone'),
-    0x0433: GossipStone('Hyrule Field (Open Grotto)',           'Field Near Lake Outside Fence Grotto Gossip Stone'),
-    0x0438: GossipStone('Kakariko (Potion Grotto)',             'Kakariko Back Grotto Gossip Stone'),
-    0x0439: GossipStone('Zoras River (Open Grotto)',            'Zora River Plateau Open Grotto Gossip Stone'),
-    0x043C: GossipStone('Kokiri Forest (Storms Grotto)',        'Kokiri Forest Storms Grotto Gossip Stone'),
-    0x0444: GossipStone('Lost Woods (Rock Grotto)',             'Lost Woods Generic Grotto Gossip Stone'),
-    0x0447: GossipStone('Death Mountain Trail (Storms Grotto)', 'Mountain Storms Grotto Gossip Stone'),
-    0x044A: GossipStone('Death Mountain Crater (Rock Grotto)',  'Top of Crater Grotto Gossip Stone'),
+    0x0430: GossipStone('HF (Near Market Grotto)',          'HF Near Market Grotto Gossip Stone'),
+    0x0432: GossipStone('HF (Southeast Grotto)',            'HF Southeast Grotto Gossip Stone'),
+    0x0433: GossipStone('HF (Open Grotto)',                 'HF Open Grotto Gossip Stone'),
+    0x0438: GossipStone('Kak (Open Grotto)',                'Kak Open Grotto Gossip Stone'),
+    0x0439: GossipStone('ZR (Open Grotto)',                 'ZR Open Grotto Gossip Stone'),
+    0x043C: GossipStone('KF (Storms Grotto)',               'KF Storms Grotto Gossip Stone'),
+    0x0444: GossipStone('LW (Near Shortcuts Grotto)',       'LW Near Shortcuts Grotto Gossip Stone'),
+    0x0447: GossipStone('DMT (Storms Grotto)',              'DMT Storms Grotto Gossip Stone'),
+    0x044A: GossipStone('DMC (Upper Grotto)',               'DMC Upper Grotto Gossip Stone'),
 }
 
 
@@ -101,36 +117,69 @@ def isRestrictedDungeonItem(dungeon, item):
 def add_hint(spoiler, world, IDs, gossip_text, count, location=None, force_reachable=False):
     random.shuffle(IDs)
     skipped_ids = []
+    duplicates = []
     first = True
     success = True
-    while random.random() < count:
+    # early failure if not enough
+    if len(IDs) < int(count):
+        return False
+    # Randomly round up, if we have enough IDs left
+    total = int(random.random() + count) if len(IDs) > count else int(count)
+    while total:
         if IDs:
             id = IDs.pop(0)
 
             if gossipLocations[id].reachable:
-                stone_location = gossipLocations[id].location
+                stone_name = gossipLocations[id].location
+                stone_location = world.get_location(stone_name)
                 if not first or can_reach_stone(spoiler.worlds, stone_location, location):
                     if first and location:
-                        old_rule = location.access_rule
-                        location.access_rule = lambda state: state.can_reach(stone_location, resolution_hint='Location') and old_rule(state)
+                        # just name the event item after the gossip stone directly
+                        MakeEventItem(stone_name, stone_location)
+                        # This mostly guarantees that we don't lock the player out of an item hint
+                        # by establishing a (hint -> item) -> hint -> item -> (first hint) loop
+                        location.add_rule(world.parser.parse_rule(repr(stone_name)))
 
-                    count -= 1
+                    total -= 1
                     first = False
                     spoiler.hints[world.id][id] = gossip_text
+                    # Immediately start choosing duplicates from stones we passed up earlier
+                    while duplicates and total:
+                        id = duplicates.pop(0)
+                        total -= 1
+                        spoiler.hints[world.id][id] = gossip_text
                 else:
-                    skipped_ids.append(id)
+                    # Temporarily skip this stone but consider it for duplicates
+                    duplicates.append(id)
             else:
                 if not force_reachable:
                     # The stones are not readable at all in logic, so we ignore any kind of logic here
-                    count -= 1
-                    spoiler.hints[world.id][id] = gossip_text
+                    if not first:
+                        total -= 1
+                        spoiler.hints[world.id][id] = gossip_text
+                    else:
+                        # Temporarily skip this stone but consider it for duplicates
+                        duplicates.append(id)
                 else:
                     # If flagged to guarantee reachable, then skip
                     # If no stones are reachable, then this will place nothing
                     skipped_ids.append(id)                
         else:
+            # Out of IDs
+            if not force_reachable and len(duplicates) >= total:
+                # Didn't find any appropriate stones for this hint, but maybe enough completely unreachable ones.
+                # We'd rather not use reachable stones for this.
+                unr = [id for id in duplicates if not gossipLocations[id].reachable]
+                if len(unr) >= total:
+                    duplicates = [id for id in duplicates if id not in unr[:total]]
+                    for id in unr[:total]:
+                        spoiler.hints[world.id][id] = gossip_text
+                    # Success
+                    break
+            # Failure
             success = False
             break
+    IDs.extend(duplicates)
     IDs.extend(skipped_ids)
     return success
 
@@ -141,11 +190,11 @@ def can_reach_stone(worlds, stone_location, location):
 
     old_item = location.item
     location.item = None
-    playthrough = Playthrough.max_explore([world.state for world in worlds])
+    search = Search.max_explore([world.state for world in worlds])
     location.item = old_item
 
-    return (playthrough.state_list[location.world.id].can_reach(stone_location, resolution_hint='Location')
-            and playthrough.state_list[location.world.id].guarantee_hint())
+    return (search.spot_access(stone_location)
+            and search.state_list[location.world.id].guarantee_hint())
 
 
 def writeGossipStoneHints(spoiler, world, messages):
@@ -220,27 +269,41 @@ def get_hint_area(spot):
         return spot.parent_region.dungeon.hint
     elif spot.parent_region.hint:
         return spot.parent_region.hint
+    #Breadth first search for connected regions with a max depth of 2
     for entrance in spot.parent_region.entrances:
         if entrance.parent_region.hint:
             return entrance.parent_region.hint
+    for entrance in spot.parent_region.entrances:
+        for entrance2 in entrance.parent_region.entrances:
+            if entrance2.parent_region.hint:
+                return entrance2.parent_region.hint
     raise RuntimeError('No hint area could be found for %s [World %d]' % (spot, spot.world.id))
 
 
 def get_woth_hint(spoiler, world, checked):
     locations = spoiler.required_locations[world.id]
-    locations = list(filter(lambda location: location.name not in checked, locations))
+    locations = list(filter(lambda location: 
+        location.name not in checked and \
+        not (world.woth_dungeon >= 2 and location.parent_region.dungeon), 
+        locations))
+
     if not locations:
         return None
 
     location = random.choice(locations)
-    checked.append(location.name)
+    checked.add(location.name)
 
     if location.parent_region.dungeon:
+        if world.hint_dist != 'very_strong':
+            world.woth_dungeon += 1
         location_text = getHint(location.parent_region.dungeon.name, world.clearer_hints).text
     else:
         location_text = get_hint_area(location)
 
-    return (GossipText('#%s# is on the way of the hero.' % location_text, ['Light Blue']), location)
+    if world.triforce_hunt:
+        return (GossipText('#%s# is on the path of gold.' % location_text, ['Light Blue']), location)
+    else:
+        return (GossipText('#%s# is on the way of the hero.' % location_text, ['Light Blue']), location)
 
 
 def get_barren_hint(spoiler, world, checked):
@@ -258,21 +321,25 @@ def get_barren_hint(spoiler, world, checked):
     if world.hint_dist != 'very_strong' and world.empty_areas[area]['dungeon']:
         world.barren_dungeon = True
 
-    checked.append(area)
+    checked.add(area)
 
     return (GossipText("plundering #%s# is a foolish choice." % area, ['Pink']), None)
 
 
+def is_not_checked(location, checked):
+    return not (location.name in checked or get_hint_area(location) in checked)
+
+
 def get_good_item_hint(spoiler, world, checked):
     locations = [location for location in world.get_filled_locations()
-            if not location.name in checked and \
+            if is_not_checked(location, checked) and \
             location.item.majoritem and \
             not location.locked]
     if not locations:
         return None
 
     location = random.choice(locations)
-    checked.append(location.name)
+    checked.add(location.name)
 
     item_text = getHint(getItemGenericName(location.item), world.clearer_hints).text
     if location.parent_region.dungeon:
@@ -285,7 +352,7 @@ def get_good_item_hint(spoiler, world, checked):
 
 def get_random_location_hint(spoiler, world, checked):
     locations = [location for location in world.get_filled_locations()
-            if not location.name in checked and \
+            if is_not_checked(location, checked) and \
             location.item.type not in ('Drop', 'Event', 'Shop', 'DungeonReward') and \
             not (location.parent_region.dungeon and \
                 isRestrictedDungeonItem(location.parent_region.dungeon, location.item)) and
@@ -294,7 +361,7 @@ def get_random_location_hint(spoiler, world, checked):
         return None
 
     location = random.choice(locations)
-    checked.append(location.name)
+    checked.add(location.name)
     dungeon = location.parent_region.dungeon
 
     item_text = getHint(getItemGenericName(location.item), world.clearer_hints).text
@@ -308,13 +375,13 @@ def get_random_location_hint(spoiler, world, checked):
 
 def get_specific_hint(spoiler, world, checked, type):
     hintGroup = getHintGroup(type, world)
-    hintGroup = list(filter(lambda hint: hint.name not in checked, hintGroup))
+    hintGroup = list(filter(lambda hint: is_not_checked(world.get_location(hint.name), checked), hintGroup))
     if not hintGroup:
         return None
 
     hint = random.choice(hintGroup)
     location = world.get_location(hint.name)
-    checked.append(location.name)
+    checked.add(location.name)
 
     location_text = hint.text
     if '#' not in location_text:
@@ -324,12 +391,12 @@ def get_specific_hint(spoiler, world, checked, type):
     return (GossipText('%s #%s#.' % (location_text, item_text), ['Green', 'Red']), location)
 
 
+def get_sometimes_hint(spoiler, world, checked):
+    return get_specific_hint(spoiler, world, checked, 'sometimes')
+
+
 def get_song_hint(spoiler, world, checked):
     return get_specific_hint(spoiler, world, checked, 'song')
-
-
-def get_minigame_hint(spoiler, world, checked):
-    return get_specific_hint(spoiler, world, checked, 'minigame')
 
 
 def get_overworld_hint(spoiler, world, checked):
@@ -353,7 +420,7 @@ def get_entrance_hint(spoiler, world, checked):
 
     entrance_hint = random.choice(valid_entrance_hints)
     entrance = world.get_entrance(entrance_hint.name)
-    checked.append(entrance.name)
+    checked.add(entrance.name)
 
     entrance_text = entrance_hint.text
 
@@ -379,7 +446,7 @@ def get_junk_hint(spoiler, world, checked):
         return None
 
     hint = random.choice(hints)
-    checked.append(hint.name)
+    checked.add(hint.name)
 
     return (GossipText(hint.text, prefix=''), None)
 
@@ -390,8 +457,8 @@ hint_func = {
     'woth':     get_woth_hint,
     'barren':   get_barren_hint,
     'item':     get_good_item_hint,
+    'sometimes':get_sometimes_hint,    
     'song':     get_song_hint,
-    'minigame': get_minigame_hint,
     'ow':       get_overworld_hint,
     'dungeon':  get_dungeon_hint,
     'entrance': get_entrance_hint,
@@ -411,7 +478,6 @@ hint_dist_sets = {
         'barren':   (0.0, 0),
         'item':     (0.0, 0),
         'song':     (0.0, 0),
-        'minigame': (0.0, 0),
         'ow':       (0.0, 0),
         'dungeon':  (0.0, 0),
         'entrance': (0.0, 0),
@@ -425,7 +491,6 @@ hint_dist_sets = {
         'barren':   (2.0, 1),
         'item':     (5.0, 1),
         'song':     (1.0, 1),
-        'minigame': (0.5, 1),
         'ow':       (2.0, 1),
         'dungeon':  (1.5, 1),
         'entrance': (3.0, 1),
@@ -439,7 +504,6 @@ hint_dist_sets = {
         'barren':   (3.0, 1),
         'item':     (1.0, 1),
         'song':     (0.33, 1),
-        'minigame': (0.33, 1),
         'ow':       (0.66, 1),
         'dungeon':  (0.66, 1),
         'entrance': (1.0, 1),
@@ -453,45 +517,61 @@ hint_dist_sets = {
         'barren':   (3.0, 1),
         'item':     (1.0, 1),
         'song':     (0.5, 1),
-        'minigame': (0.5, 1),
         'ow':       (1.5, 1),
         'dungeon':  (1.5, 1),
         'entrance': (2.0, 1),
         'random':   (0.0, 0),
         'junk':     (0.0, 0),
     },
-    'tournament': {
+    'tournament': OrderedDict({
         # (number of hints, count per hint)
-        'trial':    (0.0, 2),
-        'always':   (0.0, 2),
-        'woth':     (4.0, 2),
-        'barren':   (2.0, 2),
-        'item':     (0.0, 1),
-        'song':     (1.0, 1),
-        'minigame': (0.0, 1),
-        'ow':       (2.0, 1),
-        'dungeon':  (3.0, 1),
-        'entrance': (4.0, 1),
-        'random':   (0.0, 1),
-        'junk':     (0.0, 0),
-    },
+        'trial':     (0.0, 2),
+        'always':    (0.0, 2),
+        'woth':      (5.0, 2),
+        'barren':    (3.0, 2),
+        'entrance':  (4.0, 2),
+        'sometimes': (0.0, 2),
+        'random':    (0.0, 2),
+    }),
 }
 
 
+def buildGossipHints(spoiler, worlds):
+    checkedLocations = dict()
+    # Add Light Arrow locations to "checked" locations if Ganondorf is reachable without it.
+    for world in worlds:
+        location = world.light_arrow_location
+        if location is None:
+            continue
+        # Didn't you know that Ganondorf is a gossip stone?
+        if can_reach_stone(worlds, world.get_location("Ganondorf Hint"), location):
+            light_arrow_world = location.world
+            if light_arrow_world.id not in checkedLocations:
+                checkedLocations[light_arrow_world.id] = set()
+            checkedLocations[light_arrow_world.id].add(location.name)
+
+    # Build all the hints.
+    for world in worlds:
+        world.update_useless_areas(spoiler)
+        buildWorldGossipHints(spoiler, world, checkedLocations.pop(world.id, None))
+
+
 #builds out general hints based on location and whether an item is required or not
-def buildGossipHints(spoiler, world):
+def buildWorldGossipHints(spoiler, world, checkedLocations=None):
     # rebuild hint exclusion list
     hintExclusions(world, clear_cache=True)
 
     world.barren_dungeon = False
+    world.woth_dungeon = 0
 
-    playthrough = Playthrough.max_explore([w.state for w in spoiler.worlds])
+    search = Search.max_explore([w.state for w in spoiler.worlds])
     for stone in gossipLocations.values():
         stone.reachable = (
-            playthrough.state_list[world.id].can_reach(stone.location, resolution_hint='Location')
-            and playthrough.state_list[world.id].guarantee_hint())
+            search.spot_access(world.get_location(stone.location))
+            and search.state_list[world.id].guarantee_hint())
 
-    checkedLocations = []
+    if checkedLocations is None:
+        checkedLocations = set()
 
     stoneIDs = list(gossipLocations.keys())
 
@@ -507,7 +587,7 @@ def buildGossipHints(spoiler, world):
     alwaysLocations = getHintGroup('always', world)
     for hint in alwaysLocations:
         location = world.get_location(hint.name)
-        checkedLocations.append(hint.name)
+        checkedLocations.add(hint.name)
 
         location_text = getHint(location.name, world.clearer_hints).text
         if '#' not in location_text:
@@ -537,13 +617,15 @@ def buildGossipHints(spoiler, world):
         fixed_hint_types = []
         for hint_type in hint_types:
             fixed_hint_types.extend([hint_type] * int(hint_dist[hint_type][0]))
+        fill_hint_types = ['sometimes', 'random']
+        current_fill_type = fill_hint_types.pop(0)
 
     while stoneIDs:
         if world.hint_dist == "tournament":
             if fixed_hint_types:
                 hint_type = fixed_hint_types.pop(0)
             else:
-                hint_type = 'random'
+                hint_type = current_fill_type
         else:
             try:
                 # Weight the probabilities such that hints that are over the expected proportion
@@ -569,14 +651,20 @@ def buildGossipHints(spoiler, world):
         if hint == None:
             index = hint_types.index(hint_type)
             hint_prob[index] = 0
-            if world.hint_dist == "tournament" and hint_type == 'random':
-                raise Exception('Not enough valid %s hints for tournament distribution' % hint_type)
+            if world.hint_dist == "tournament" and hint_type == current_fill_type:
+                logging.getLogger('').info('Not enough valid %s hints for tournament distribution.', hint_type)
+                if fill_hint_types:
+                    current_fill_type = fill_hint_types.pop(0)
+                    logging.getLogger('').info('Switching to %s hints to fill remaining gossip stone locations.', current_fill_type)
+                else:
+                    raise Exception('Not enough valid hints for tournament distribution.')
         else:
             gossip_text, location = hint
             place_ok = add_hint(spoiler, world, stoneIDs, gossip_text, hint_dist[hint_type][1], location)
             if place_ok:
                 hint_counts[hint_type] = hint_counts.get(hint_type, 0) + 1
             if not place_ok and world.hint_dist == "tournament":
+                logging.getLogger('').debug('Failed to place %s hint for %s.', hint_type, location.name)
                 fixed_hint_types.insert(0, hint_type)
 
 
@@ -620,7 +708,7 @@ def buildBossString(reward, color, world):
         if location.item.name == reward:
             item_icon = chr(location.item.special['item_id'])
             location_text = getHint(location.name, world.clearer_hints).text
-            return str(GossipText("\x08\x13%s%s" % (item_icon, location_text), [color], prefix=''))
+            return str(GossipText("\x08\x13%s%s" % (item_icon, location_text), [color], prefix='')) + '\x04'
     return ''
 
 
@@ -638,25 +726,24 @@ def buildGanonText(world, messages):
     update_message_by_id(messages, 0x70CB, text)
 
     # light arrow hint or validation chest item
-    if world.trials == 0:
+    if world.distribution.get_starting_item('Light Arrows') > 0:
         text = get_raw_text(getHint('Light Arrow Location', world.clearer_hints).text)
-        if world.distribution.get_starting_item('Light Arrows') > 0:
-            text += "\x05\x42your pocket\x05\x40"
+        text += "\x05\x42your pocket\x05\x40"
+    elif world.light_arrow_location:
+        text = get_raw_text(getHint('Light Arrow Location', world.clearer_hints).text)
+        location = world.light_arrow_location
+        location_hint = get_hint_area(location).replace('Ganon\'s Castle', 'my castle')
+        if world.id != location.world.id:
+            text += "\x05\x42Player %d's\x05\x40 %s" % (location.world.id +1, get_raw_text(location_hint))
         else:
-            location = world.light_arrow_location
-            location_hint = get_hint_area(location).replace('Ganon\'s Castle', 'my castle')
-            if world.id != location.world.id:
-                text += "\x05\x42Player %d's\x05\x40 %s" % (location.world.id +1, get_raw_text(location_hint))
-            else:
-                text += get_raw_text(location_hint)
-        text += '!'
+            text += get_raw_text(location_hint)
     else:
         text = get_raw_text(getHint('Validation Line', world.clearer_hints).text)
         for location in world.get_filled_locations():
             if location.name == 'Ganons Tower Boss Key Chest':
                 text += get_raw_text(getHint(getItemGenericName(location.item), world.clearer_hints).text)
-                text += '!'
                 break
+    text += '!'
 
     update_message_by_id(messages, 0x70CC, text)
 

@@ -1,8 +1,15 @@
 .n64
 .relativeinclude on
 
+// version guard, prevent people from building with older armips versions
+.if (version() < 110)
+.notice version()
+.error   "Detected armips build is too old. Please install https://github.com/Kingcom/armips version 0.11 or later."
+.endif
+
 .create "../roms/patched.z64", 0
 .incbin "../roms/base.z64"
+.include "macros.asm"
 
 ;==================================================================================================
 ; Constants
@@ -27,7 +34,8 @@
 .headersize (0x80400000 - 0x03480000)
 
 .org 0x80400000
-.area 0x10000
+.area 0x20000 //payload max memory
+PAYLOAD_START:
 
 .area 0x20, 0
 RANDO_CONTEXT:
@@ -54,6 +62,7 @@ RANDO_CONTEXT:
 .include "bgs_fix.asm"
 .include "chus_in_logic.asm"
 .include "rainbow_bridge.asm"
+.include "lacs_condition.asm"
 .include "gossip_hints.asm"
 .include "potion_shop.asm"
 .include "jabu_elevator.asm"
@@ -61,8 +70,9 @@ RANDO_CONTEXT:
 .include "dpad.asm"
 .include "chests.asm"
 .include "bunny_hood.asm"
-.include "magic_color.asm"
+.include "colors.asm"
 .include "debug.asm"
+.include "extended_objects.asm"
 .include "cow.asm"
 .include "lake_hylia.asm"
 .include "timers.asm"
@@ -70,12 +80,27 @@ RANDO_CONTEXT:
 .include "damage.asm"
 .include "bean_salesman.asm"
 .include "grotto.asm"
+.include "deku_mouth_condition.asm"
+.include "audio.asm"
+.include "king_zora.asm"
+.include "file_select.asm"
+.include "agony.asm"
+.include "horseback_archery.asm"
+
+.align 0x10
 .importobj "../build/bundle.o"
 .align 8
 FONT_TEXTURE:
 .incbin("../resources/font.bin")
 DPAD_TEXTURE:
 .incbin("../resources/dpad.bin")
-.endarea
+TRIFORCE_ICON_TEXTURE:
+.incbin("../resources/triforce_sprite.bin")
 
+.align 0x10
+PAYLOAD_END:
+.endarea //payload max memory
+
+AUDIO_THREAD_MEM_START:
+.skip AUDIO_THREAD_MEM_SIZE
 .close

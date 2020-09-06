@@ -1,3 +1,5 @@
+import io
+import json
 import os, os.path
 import subprocess
 import sys
@@ -50,6 +52,20 @@ def default_output_path(path):
     if not os.path.exists(path):
         os.mkdir(path)
     return path
+
+
+def read_json(file_path):
+    json_string = ""
+    with io.open(file_path, 'r') as file:
+        for line in file.readlines():
+            json_string += line.split('#')[0].replace('\n', ' ')
+    json_string = re.sub(' +', ' ', json_string)
+    try:
+        return json.loads(json_string)
+    except json.JSONDecodeError as error:
+        raise Exception("JSON parse error around text:\n" + \
+                        json_string[error.pos-35:error.pos+35] + "\n" + \
+                        "                                   ^^\n")
 
 
 def open_file(filename):
@@ -177,4 +193,4 @@ def subprocess_args(include_stdout=True):
 def check_python_version():
     python_version = '.'.join([str(num) for num in sys.version_info[0:3]])
     if compare_version(python_version, '3.6.0') < 0:
-        raise Exception('Randomizer requires at least version 3.6 and you are using %s' % python_version)
+        raise VersionError('Randomizer requires at least version 3.6 and you are using %s' % python_version, "https://www.python.org/downloads/")

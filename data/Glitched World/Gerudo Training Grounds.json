@@ -11,7 +11,7 @@
         "exits": {
             "Gerudo Training Grounds Heavy Block Room": "True",
             "Gerudo Training Grounds Lava Room": "
-                as_either(has_explosives and can_jumpslash)",
+                here(has_explosives and can_jumpslash)",
             "Gerudo Training Grounds Central Maze": "True"
         }
     },
@@ -56,7 +56,7 @@
         },
         "exits": {
             "Gerudo Training Grounds Central Maze Right": "can_play(Song_of_Time) or is_child
-                or (can_use(Hookshot) and can_use(Hover_Boots) and can_shield and has_bombs)",
+                or (can_use(Hookshot) and can_use(Hover_Boots) and can_shield and Bombs)",
             "Gerudo Training Grounds Hammer Room": "can_use(Hookshot)"
         }
     },
@@ -65,7 +65,7 @@
         "dungeon": "Gerudo Training Grounds",
         "locations": {
             "Gerudo Training Grounds Hammer Room Clear Chest": "True",
-            "Gerudo Training Grounds Hammer Room Switch Chest": "can_use(Hammer) or 
+            "Gerudo Training Grounds Hammer Room Switch Chest": "can_use(Megaton_Hammer) or 
                 can_live_dmg(0.5) or can_use(Nayrus_Love)"
         },
         "exits": {
@@ -105,7 +105,7 @@
         },
         "exits": {
             "Gerudo Training Grounds Eye Statue Upper": "can_use(Hookshot) or can_hover or
-                (is_adult and (Hover_Boots or (can_shield and has_bombs)))"
+                (is_adult and (Hover_Boots or (can_shield and Bombs)))"
         }
     }
 ]

@@ -1,14 +1,32 @@
 import random
 
+#   Abbreviations
+#       DMC     Death Mountain Crater
+#       DMT     Death Mountain Trail
+#       GC      Goron City
+#       GF      Gerudo Fortress
+#       GS      Gold Skulltula
+#       GV      Gerudo Valley
+#       HC      Hyrule Castle
+#       HF      Hyrule Field
+#       KF      Kokiri Forest
+#       LH      Lake Hylia
+#       LLR     Lon Lon Ranch
+#       LW      Lost Woods
+#       OGC     Outside Ganon's Castle
+#       SFM     Sacred Forest Meadow
+#       ZD      Zora's Domain
+#       ZF      Zora's Fountain
+#       ZR      Zora's River
 
 class Hint(object):
     name = ""
     text = ""
-    type = ""
+    type = []
 
     def __init__(self, name, text, type, choice=None):
         self.name = name
-        self.type = type
+        self.type = [type] if not isinstance(type, list) else type
 
         if isinstance(text, str):
             self.text = text
@@ -33,20 +51,38 @@ def getHintGroup(group, world):
     ret = []
     for name in hintTable:
 
-        # Some hints have a confusing text in the scope of grotto entrance shuffle so we exclude them
-        if world.shuffle_grotto_entrances:
-            if name == 'GS Hyrule Castle Grotto' or name == 'GS Hyrule Field Near Gerudo Valley':
-                continue
-
         hint = getHint(name, world.clearer_hints)
 
-        # 10 Big Poes does not require hint if 3 or less required.
-        if name == '10 Big Poes' and world.big_poe_count <= 3:
-            hint.type = 'overworld'
+        if hint.name in world.always_hints:
+            hint.type = 'always'
 
-        if hint.type == group and not (name in hintExclusions(world)):
+        if group in hint.type and not (name in hintExclusions(world)):
             ret.append(hint)
     return ret
+
+
+def getRequiredHints(world):
+    ret = []
+    for name in hintTable:
+        hint = getHint(name)
+        if 'always' in hint.type or hint.name in conditional_always and conditional_always[hint.name](world):
+            ret.append(hint)
+    return ret
+
+
+# Hints required under certain settings
+conditional_always = {
+    'Market 10 Big Poes':           lambda world: world.big_poe_count > 3,
+    'Deku Theater Skull Mask':      lambda world: world.hint_dist == 'tournament' and world.open_kakariko == 'closed',
+    'Deku Theater Mask of Truth':   lambda world: not world.complete_mask_quest,
+    'Song from Ocarina of Time':    lambda world: world.bridge not in ('stones', 'dungeons') and world.shuffle_ganon_bosskey not in ('lacs_stones', 'lacs_dungeons'),
+    'HF Ocarina of Time Item':      lambda world: world.bridge not in ('stones', 'dungeons') and world.shuffle_ganon_bosskey not in ('lacs_stones', 'lacs_dungeons'),
+    'Sheik in Kakariko':            lambda world: world.bridge not in ('medallions', 'dungeons') and world.shuffle_ganon_bosskey not in ('lacs_medallions', 'lacs_dungeons'),
+    'DMT Biggoron':                 lambda world: world.logic_earliest_adult_trade != 'claim_check' or world.logic_latest_adult_trade != 'claim_check',
+    'Kak 50 Gold Skulltula Reward': lambda world: world.bridge != 'tokens' or world.bridge_tokens < 50,
+    'Kak 40 Gold Skulltula Reward': lambda world: world.bridge != 'tokens' or world.bridge_tokens < 40,
+    'Kak 30 Gold Skulltula Reward': lambda world: world.bridge != 'tokens' or world.bridge_tokens < 30,
+}
 
 
 # table of hints, format is (name, hint text, clear hint text, type of hint) there are special characters that are read for certain in game commands:
@@ -55,6 +91,7 @@ def getHintGroup(group, world):
 # @ will print the player name
 # # sets color to white (currently only used for dungeon reward hints).
 hintTable = {
+    'Triforce Piece':                                           (["a triumph fork", "cheese", "a gold fragment"], "a Piece of the Triforce", "item"),
     'Magic Meter':                                              (["mystic training", "pixie dust", "a green rectangle"], "a Magic Meter", 'item'),
     'Double Defense':                                           (["a white outline", "damage decrease", "strengthened love"], "Double Defense", 'item'),
     'Slingshot':                                                (["a seed shooter", "a rubberband", "a child's catapult"], "a Slingshot", 'item'),
@@ -64,7 +101,7 @@ hintTable = {
     'Progressive Hookshot':                                     (["Dampe's keepsake", "the Grapple Beam", "the BOING! chain"], "a Hookshot", 'item'),
     'Progressive Strength Upgrade':                             (["power gloves", "metal mittens", "the heavy lifty"], "a Strength Upgrade", 'item'),
     'Progressive Scale':                                        (["a deeper dive", "a piece of Zora"], "a Zora Scale", 'item'),
-    'Hammer':                                                   (["the dragon smasher", "the metal mallet", "the heavy hitter"], "the Megaton Hammer", 'item'),
+    'Megaton Hammer':                                           (["the dragon smasher", "the metal mallet", "the heavy hitter"], "the Megaton Hammer", 'item'),
     'Iron Boots':                                               (["sink shoes", "clank cleats"], "the Iron Boots", 'item'),
     'Hover Boots':                                              (["butter boots", "sacred slippers", "spacewalkers"], "the Hover Boots", 'item'),
     'Kokiri Sword':                                             (["a butter knife", "a starter slasher", "a switchblade"], "the Kokiri Sword", 'item'),
@@ -97,7 +134,7 @@ hintTable = {
     'Nocturne of Shadow':                                       (["a song of spooky spirits", "a graveyard boogie", "a haunted hymn", "a purple spark trail"], "the Nocturne of Shadow", 'item'),
     'Prelude of Light':                                         (["a luminous prologue melody", "a yellow spark trail", "the temple traveler"], "the Prelude of Light", 'item'),
     'Bottle':                                                   (["a glass container", "an empty jar", "encased air"], "a Bottle", 'item'),
-    'Bottle with Letter':                                       (["a call for help", "the note that Mweeps", "an SOS call", "a fishy stationery"], "Ruto's Letter", 'item'),
+    'Rutos Letter':                                             (["a call for help", "the note that Mweeps", "an SOS call", "a fishy stationery"], "Ruto's Letter", 'item'),
     'Bottle with Milk':                                         (["cow juice", "a white liquid", "a baby's breakfast"], "a Milk Bottle", 'item'),
     'Bottle with Red Potion':                                   (["a vitality vial", "a red liquid"], "a Red Potion Bottle", 'item'),
     'Bottle with Green Potion':                                 (["a magic mixture", "a green liquid"], "a Green Potion Bottle", 'item'),
@@ -161,180 +198,181 @@ hintTable = {
     'Deku Seeds (30)':                                          (["catapult ammo", "lots-o-seeds"], "Deku Seeds (30 pieces)", 'item'),
     'Gold Skulltula Token':                                     (["proof of destruction", "an arachnid chip", "spider remains", "one percent of a curse"], "a Gold Skulltula Token", 'item'),
 
-    '10 Big Poes':                                              (["#Big Poes# leads to", "#ghost hunters# will be rewarded with"], None, 'always'),
-    'Deku Theater Mask of Truth':                               ("the #Mask of Truth# yields", None, 'always'),
-    '30 Gold Skulltula Reward':                                 ("slaying #30 Gold Skulltulas# reveals", None, 'always'),
-    '40 Gold Skulltula Reward':                                 ("slaying #40 Gold Skulltulas# reveals", None, 'always'),
-    '50 Gold Skulltula Reward':                                 ("slaying #50 Gold Skulltulas# reveals", None, 'always'),
-    'Ocarina of Time':                                          ("the #treasure thrown by Princess Zelda# is", None, 'always'),
-    'Song from Ocarina of Time':                                ("the #Ocarina of Time# teaches", None, 'always'),
-    'Biggoron':                                                 ("#Biggoron# crafts", None, 'always'),
-    'Frog Ocarina Game':                                        (["an #amphibian feast# yields", "the #croaking choir's magnum opus# awards", "the #froggy finale# yields"], "the final reward from the #Frogs of Zora's River# is", 'always'),
+    'Deku Theater Mask of Truth':                               ("the #Mask of Truth# yields", None, ['overworld', 'sometimes']),
+    'ZR Frogs Ocarina Game':                                    (["an #amphibian feast# yields", "the #croaking choir's magnum opus# awards", "the #froggy finale# yields"], "the final reward from the #Frogs of Zora's River# is", 'always'),
+    'KF Links House Cow':                                       ("the #bovine bounty of a horseback hustle# gifts", "#Malon's obstacle course# leads to", 'always'),
 
-    'Song from Composer Grave':                                 (["in the #Composers' Grave#, ReDead guard", "the #Composer Brothers# wrote"], None, 'song'),
-    'Sheik Forest Song':                                        ("deep in #the forest# Sheik teaches", None, 'song'),
-    'Sheik at Temple':                                          ("Sheik waits at a #monument to time# to teach", None, 'song'),
-    'Sheik in Crater':                                          ("the #crater's melody# is", None, 'song'),
-    'Sheik in Ice Cavern':                                      ("the #frozen cavern# echoes with", None, 'song'),
-    'Sheik in Kakariko':                                        ("a #ravaged village# mourns with", None, 'song'),
-    'Sheik at Colossus':                                        ("a hero ventures beyond #the Wasteland# to learn", None, 'song'),
+    'Song from Ocarina of Time':                                ("the #Ocarina of Time# teaches", None, ['song', 'sometimes']),
+    'Song from Composers Grave':                                (["#ReDead in the Composers' Grave# guard", "the #Composer Brothers wrote#"], None, ['song', 'sometimes']),
+    'Sheik in Forest':                                          ("#in a meadow# Sheik teaches", None, ['song', 'sometimes']),
+    'Sheik at Temple':                                          ("Sheik waits at a #monument to time# to teach", None, ['song', 'sometimes']),
+    'Sheik in Crater':                                          ("the #crater's melody# is", None, ['song', 'sometimes']),
+    'Sheik in Ice Cavern':                                      ("the #frozen cavern# echoes with", None, ['song', 'sometimes']),
+    'Sheik in Kakariko':                                        ("a #ravaged village# mourns with", None, ['song', 'sometimes']),
+    'Sheik at Colossus':                                        ("a hero ventures #beyond the wasteland# to learn", None, ['song', 'sometimes']),
 
-    'Child Fishing':                                            ("#fishing in youth# bestows", None, 'minigame'),
-    'Adult Fishing':                                            ("#fishing in maturity# bestows", None, 'minigame'),
-    'Child Shooting Gallery':                                   ("#shooting in youth# grants", None, 'minigame'),
-    'Adult Shooting Gallery':                                   ("#shooting in maturity# grants", None, 'minigame'),
-    'Bombchu Bowling Bomb Bag':                                 ("the #first explosive prize# is", None, 'minigame'),
-    'Bombchu Bowling Piece of Heart':                           ("the #second explosive prize# is", None, 'minigame'),
-    'Treasure Chest Game':                                      (["#gambling# grants", "there is a #1/32 chance# to win"], "the #treasure chest game# grants", 'minigame'),
-    'Horseback Archery 1500 Points':                            ("mastery of #horseback archery# grants", "scoring 1500 in #horseback archery# grants", 'minigame'),
+    'Market 10 Big Poes':                                       ("#ghost hunters# will be rewarded with", "catching #Big Poes# leads to", ['overworld', 'sometimes']),
+    'Deku Theater Skull Mask':                                  ("the #Skull Mask# yields", None, ['overworld', 'sometimes']),
+    'HF Ocarina of Time Item':                                  ("the #treasure thrown by Princess Zelda# is", None, ['overworld', 'sometimes']),
+    'DMT Biggoron':                                             ("#Biggoron# crafts", None, ['overworld', 'sometimes']),
+    'Kak 50 Gold Skulltula Reward':                             ("slaying #50 Gold Skulltulas# reveals", None, ['overworld', 'sometimes']),
+    'Kak 40 Gold Skulltula Reward':                             ("slaying #40 Gold Skulltulas# reveals", None, ['overworld', 'sometimes']),
+    'Kak 30 Gold Skulltula Reward':                             ("slaying #30 Gold Skulltulas# reveals", None, ['overworld', 'sometimes']),
+    'Kak 20 Gold Skulltula Reward':                             ("slaying #20 Gold Skulltulas# reveals", None, ['overworld', 'sometimes']),
+    'Kak Anju as Child':                                        ("#collecting cuccos# rewards", None, ['overworld', 'sometimes']),
+    'GC Darunias Joy':                                          ("#Darunia's dance# leads to", None, ['overworld', 'sometimes']),
+    'LW Skull Kid':                                             ("the #Skull Kid# grants", None, ['overworld', 'sometimes']),
+    'LH Sun':                                                   ("staring into #the sun# grants", "shooting #the sun# grants", ['overworld', 'sometimes']),
+    'Market Treasure Chest Game Reward':                        (["#gambling# grants", "there is a #1/32 chance# to win"], "the #treasure chest game# grants", ['overworld', 'sometimes']),
+    'GF HBA 1500 Points':                                       ("mastery of #horseback archery# grants", "scoring 1500 in #horseback archery# grants", ['overworld', 'sometimes']),
+    'Graveyard Heart Piece Grave Chest':                        ("playing #Sun's Song# in a grave spawns", None, ['overworld', 'sometimes']),
+    'GC Maze Left Chest':                                       ("in #Goron City# the hammer unlocks", None, ['overworld', 'sometimes']),
+    'GV Chest':                                                 ("in #Gerudo Valley# the hammer unlocks", None, ['overworld', 'sometimes']),
+    'GV Cow':                                                   ("a #cow in Gerudo Valley# gifts", None, ['overworld', 'sometimes']),
+    'HC GS Storms Grotto':                                      ("a #spider behind a muddy wall# in a grotto holds", None, ['overworld', 'sometimes']),
+    'HF GS Cow Grotto':                                         ("a #spider behind webs# in a grotto holds", None, ['overworld', 'sometimes']),
+    'HF Cow Grotto Cow':                                        ("a #cow behind webs# in a grotto gifts", None, ['overworld', 'sometimes']),
+    'GS Zora\'s Fountain Hidden Cave':                          ("a spider high #above the icy waters# holds", None, ['overworld', 'sometimes']),
+    'Wasteland Chest':                                          (["#deep in the wasteland# is", "beneath #the sands#, flames reveal"], None, ['overworld', 'sometimes']),
+    'Colossus GS Bean Patch':                                   ("a #spider in the wasteland# holds", None, ['overworld', 'sometimes']),
+    'Graveyard Composers Grave Chest':                          (["#flames in the Composers' Grave# reveal", "the #Composer Brothers hid#"], None, ['overworld', 'sometimes']),
+    'ZF Bottom Freestanding PoH':                               ("#under the icy waters# lies", None, ['overworld', 'sometimes']),
+    'GC Pot Freestanding PoH':                                  ("spinning #Goron pottery# contains", None, ['overworld', 'sometimes']),
+    'ZD King Zora Thawed':                                      ("unfreezing #King Zora# grants", None, ['overworld', 'sometimes']),
+    'DMC Deku Scrub':                                           ("a single #scrub in the crater# sells", None, ['overworld', 'sometimes']),
+    'GC GS Boulder Maze':                                       ("a spider under a #crate in the crater# holds", None, ['overworld', 'sometimes']),
 
-    'Deku Theater Skull Mask':                                  ("the #Skull Mask# yields", None, 'overworld'),
-    '20 Gold Skulltula Reward':                                 ("slaying #20 Gold Skulltulas# reveals", None, 'overworld'),
-    'Darunias Joy':                                             ("#Darunia's dance# leads to", None, 'overworld'),
-    'Skull Kid':                                                ("the #Skull Kid# grants", None, 'overworld'),
-    'Lake Hylia Sun':                                           ("staring into #the sun# grants", "shooting #the sun# grants", 'overworld'),
-    'Heart Piece Grave Chest':                                  ("playing #Sun's Song# in a grave spawns", None, 'overworld'),
-    'Goron City Leftmost Maze Chest':                           ("in #Goron City# the hammer unlocks", None, 'overworld'),
-    'Gerudo Valley Hammer Rocks Chest':                         ("in #Gerudo Valley# the hammer unlocks", None, 'overworld'),
-    'GS Hyrule Castle Grotto':                                  ("a #storm near the castle# reveals", None, 'overworld'),
-    'GS Hyrule Field Near Gerudo Valley':                       ("buried near #the valley# a spider holds", None, 'overworld'),
-    'GS Zora\'s Fountain Hidden Cave':                          ("a spider high above the #icy waters# holds", None, 'overworld'),
-    'Haunted Wasteland Structure Chest':                        (["deep in the #Wasteland# is", "beneath #the sands#, flames reveal"], None, 'overworld'),
-    'GS Wasteland Ruins':                                       ("a #spider in the Wasteland# hold", None, 'overworld'),
-    'Composer Grave Chest':                                     (["in the #Composers' Grave#, darkness hides", "the #Composer Brothers# hid"], None, 'overworld'),
-    'Zoras Fountain Bottom Freestanding PoH':                   ("under the #icy waters# lies", None, 'overworld'),
-    'Goron City Pot Freestanding PoH':                          ("spinning #Goron pottery# contains", None, 'overworld'),
-    'King Zora Thawed':                                         ("unfreezing #King Zora# grants", None, 'overworld'),
-    'DMC Deku Scrub Bombs':                                     ("in the Crater a #scrub# sells", None, 'overworld'),
+    'Deku Tree MQ After Spinning Log Chest':                    ("a #temporal stone within a tree# contains", "a #temporal stone within the Deku Tree# contains", ['dungeon', 'sometimes']),
+    'Deku Tree MQ GS Basement Graves Room':                     ("a #spider on a ceiling in a tree# holds", "a #spider on a ceiling in the Deku Tree# holds", ['dungeon', 'sometimes']),
+    'GS Dodongo\'s Cavern MQ Song of Time Block Room':          ("a spider under #temporal stones in a cavern# holds", "a spider under #temporal stones in Dodongo's Cavern# holds", ['dungeon', 'sometimes']),
+    'Jabu Jabus Belly Boomerang Chest':                         ("a school of #stingers swallowed by a deity# guard", "a school of #stingers swallowed by Jabu Jabu# guard", ['dungeon', 'sometimes']),
+    'Jabu Jabus Belly MQ GS Invisible Enemies Room':            ("a spider surrounded by #shadows in the belly of a deity# holds", "a spider surrounded by #shadows in Jabu Jabu's Belly# holds", ['dungeon', 'sometimes']),
+    'Jabu Jabus Belly MQ Cow':                                  ("a #cow swallowed by a deity# gifts", "a #cow swallowed by Jabu Jabu# gifts", ['dungeon', 'sometimes']),
+    'Fire Temple Scarecrow Chest':                              ("a #scarecrow atop the volcano# hides", "#Pierre atop the Fire Temple# hides", ['dungeon', 'sometimes']),
+    'Fire Temple Megaton Hammer Chest':                         ("the #Flare Dancer atop the volcano# guards a chest containing", "the #Flare Dancer atop the Fire Temple# guards a chest containing", ['dungeon', 'sometimes']),
+    'Fire Temple MQ Chest On Fire':                             ("the #Flare Dancer atop the volcano# guards a chest containing", "the #Flare Dancer atop the Fire Temple# guards a chest containing", ['dungeon', 'sometimes']),
+    'Fire Temple MQ GS Skull On Fire':                          ("a #spider under a block in the volcano# holds", "a #spider under a block in the Fire Temple# holds", ['dungeon', 'sometimes']),
+    'Water Temple River Chest':                                 ("beyond the #river under the lake# waits", "beyond the #river in the Water Temple# waits", ['dungeon', 'sometimes']),
+    'Water Temple Boss Key Chest':                              ("dodging #rolling boulders under the lake# leads to", "dodging #rolling boulders in the Water Temple# leads to", ['dungeon', 'sometimes']),
+    'Water Temple GS Behind Gate':                              ("a spider behind a #gate under the lake# holds", "a spider behind a #gate in the Water Temple# holds", ['dungeon', 'sometimes']),
+    'Water Temple MQ Freestanding Key':                         ("hidden in a #box under the lake# lies", "hidden in a #box in the Water Temple# lies", ['dungeon', 'sometimes']),
+    'Water Temple MQ GS Freestanding Key Area':                 ("the #locked spider under the lake# holds", "the #locked spider in the Water Temple# holds", ['dungeon', 'sometimes']),
+    'Water Temple MQ GS Triple Wall Torch':                     ("a spider behind a #gate under the lake# holds", "a spider behind a #gate in the Water Temple# holds", ['dungeon', 'sometimes']),
+    'Gerudo Training Grounds Underwater Silver Rupee Chest':    ("those who seek #sunken silver rupees# will find", None, ['dungeon', 'sometimes']),
+    'Gerudo Training Grounds MQ Underwater Silver Rupee Chest': ("those who seek #sunken silver rupees# will find", None, ['dungeon', 'sometimes']),
+    'Gerudo Training Grounds Maze Path Final Chest':            ("the final prize of #the thieves\' training# is", None, ['dungeon', 'sometimes']),
+    'Gerudo Training Grounds MQ Ice Arrows Chest':              ("the final prize of #the thieves\' training# is", None, ['dungeon', 'sometimes']),
+    'Bottom of the Well Lens of Truth Chest':                   ("#Dead Hand in the well# holds", None, ['dungeon', 'sometimes']),
+    'Bottom of the Well MQ Compass Chest':                      ("#Dead Hand in the well# holds", None, ['dungeon', 'sometimes']),
+    'Spirit Temple Silver Gauntlets Chest':                     ("upon the #Colossus's right hand# is", None, ['dungeon', 'sometimes']),
+    'Spirit Temple Mirror Shield Chest':                        ("upon the #Colossus's left hand# is", None, ['dungeon', 'sometimes']),
+    'Spirit Temple MQ Child Hammer Switch Chest':               ("a #temporal paradox in the Colossus# yields", "a #temporal paradox in the Spirit Temple# yields", ['dungeon', 'sometimes']),
+    'Spirit Temple MQ Symphony Room Chest':                     ("a #symphony in the Colossus# yields", "a #symphony in the Spirit Temple# yields", ['dungeon', 'sometimes']),
+    'Spirit Temple MQ GS Symphony Room':                        ("a #spider's symphony in the Colossus# yields", "a #spider's symphony in the Spirit Temple# yields", ['dungeon', 'sometimes']),
+    'Shadow Temple Invisible Floormaster Chest':                ("shadows in an #invisible maze# guard", None, ['dungeon', 'sometimes']),
+    'Shadow Temple MQ Bomb Flower Chest':                       ("shadows in an #invisible maze# guard", None, ['dungeon', 'sometimes']),
 
-    'Deku Tree MQ After Spinning Log Chest':                    ("within #a tree#, a temporal stone contains", None, 'dungeon'),
-    'GS Deku Tree MQ Basement Ceiling':                         ("within #a tree#, a spider on the ceiling holds", None, 'dungeon'),
-    'GS Jabu Jabu MQ Invisible Enemies Room':                   ("in the #belly of a deity#, a spider surrounded by shadows holds", None, 'dungeon'),
-    'Forest Temple Floormaster Chest':                          ("deep in #the forest#, shadows guard a chest containing", "a Floormaster in #Forest Temple# guards", 'dungeon'),
-    'Fire Temple Scarecrow Chest':                              ("high in the #Fire Temple#, Pierre hid", None, 'dungeon'),
-    'Fire Temple Megaton Hammer Chest':                         ("high in the #Fire Temple#, Flare Dancers hid", None, 'dungeon'),
-    'Fire Temple MQ West Tower Top Chest':                      ("high in the #Fire Temple#, Flare Dancers hid", None, 'dungeon'),
-    'GS Fire Temple MQ Above Fire Wall Maze':                   ("high in the #Fire Temple#, a spider holds", None, 'dungeon'),
-    'Water Temple River Chest':                                 ("deep under #the lake#, beyond the currents, hides", "the #Water Temple River Chest# holds", 'dungeon'),
-    'Water Temple Boss Key Chest':                              ("deep under #the lake#, the gilded chest contains", "the #Water Temple Gilded Chest# holds", 'dungeon'),
-    'Water Temple MQ Boss Key Chest':                           ("deep under #the lake#, the gilded chest contains", "the #Water Temple Gilded Chest# holds", 'dungeon'),
-    'Water Temple MQ Freestanding Key':                         ("deep under #the lake#, the apparent key is really", None, 'dungeon'),
-    'GS Water Temple MQ North Basement':                        ("deep under #the lake#, the locked spider holds", None, 'dungeon'),
-    'Gerudo Training Grounds Underwater Silver Rupee Chest':    ("those who seek #sunken silver rupees# will find", None, 'dungeon'),
-    'Gerudo Training Grounds MQ Underwater Silver Rupee Chest': ("those who seek #sunken silver rupees# will find", None, 'dungeon'),
-    'Gerudo Training Grounds Maze Path Final Chest':            ("the final prize of #the thieves\' training# is", None, 'dungeon'),
-    'Gerudo Training Grounds MQ Ice Arrows Chest':              ("the final prize of #the thieves\' training# is", None, 'dungeon'),
-    'Bottom of the Well Defeat Boss':                           ("#Dead Hand# holds", "#Dead Hand# in the well holds", 'dungeon'),
-    'Bottom of the Well MQ Compass Chest':                      ("#Dead Hand# holds", "#Dead Hand# in the well holds", 'dungeon'),
-    'Silver Gauntlets Chest':                                   ("upon the #Colossus's right hand# is", None, 'dungeon'),
-    'Mirror Shield Chest':                                      ("upon the #Colossus's left hand# is", None, 'dungeon'),
-    'Spirit Temple MQ Child Center Chest':                      ("within #the Colossus# a temporal paradox yields", None, 'dungeon'),
-    'Spirit Temple MQ Lower Adult Right Chest':                 ("within #the Colossus# a symphony yields", None, 'dungeon'),
-    'GS Spirit Temple MQ Lower Adult Right':                    ("within #the Colossus# a spider's symphony yields", None, 'dungeon'),
-    'Shadow Temple Hidden Floormaster Chest':                   (["shadows in an #invisible maze# guard", "after a free #boat ride# comes"], None, 'dungeon'),
-    'Shadow Temple MQ Bomb Flower Chest':                       (["shadows in an #invisible maze# guard", "after a free #boat ride# comes"], None, 'dungeon'),
-
-    'Desert Colossus -> Desert Colossus Grotto':                ("lifting a rock in #the desert# reveals", None, 'entrance'),
-    'Gerudo Valley -> Gerudo Valley Octorok Grotto':            ("on #a ledge in the valley#, a silver rock hides", None, 'entrance'),
-    'Goron City -> Goron City Grotto':                          ("a #pool of lava# in Goron City blocks the way to", None, 'entrance'),
-    'Gerudo Fortress -> Gerudo Fortress Storms Grotto':         ("a #storm within Gerudo's Fortress# reveals", None, 'entrance'),
-    'Zoras Domain -> Zoras Domain Storms Grotto':               ("a #storm within Zora's Domain# reveals", None, 'entrance'),
-    'Hyrule Castle Grounds -> Castle Storms Grotto':            ("a #storm near the castle# reveals", None, 'entrance'),
-    'Desert Colossus -> Colossus Fairy':                        ("a fractured wall #in the desert# hides", None, 'entrance'),
-    'Ganons Castle Grounds -> Ganons Castle Fairy':             ("a heavy pillar #outside the castle# obstructs", None, 'entrance'),
-    'Death Mountain Crater Lower -> Crater Fairy':              ("using a hammer #in the Crater# opens the path to", None, 'entrance'),
-    'Zoras Fountain -> Zoras Fountain Fairy':                   ("a particular wall in #Zora's Fountain# hides", None, 'entrance'),
-    'Gerudo Valley Far Side -> Carpenter Tent':                 ("a #tent in the valley# covers", None, 'entrance'),
-    'Shadow Temple Warp Region -> Shadow Temple Entryway':      ("at the back of #the Graveyard#, there is", None, 'entrance'),
+    'Desert Colossus -> Colossus Grotto':                       ("lifting a #rock in the desert# reveals", None, 'entrance'),
+    'Gerudo Valley -> GV Octorok Grotto':                       ("a rock on #a ledge in the valley# hides", None, 'entrance'),
+    'Goron City -> GC Grotto':                                  ("a #pool of lava# in Goron City blocks the way to", None, 'entrance'),
+    'Gerudo Fortress -> GF Storms Grotto':                      ("a #storm within Gerudo's Fortress# reveals", None, 'entrance'),
+    'Zoras Domain -> ZD Storms Grotto':                         ("a #storm within Zora's Domain# reveals", None, 'entrance'),
+    'Hyrule Castle Grounds -> HC Storms Grotto':                ("a #storm near the castle# reveals", None, 'entrance'),
+    'GV Fortress Side -> GV Storms Grotto':                     ("a #storm in the valley# reveals", None, 'entrance'),
+    'Desert Colossus -> Colossus Great Fairy Fountain':         ("a #fractured desert wall# hides", None, 'entrance'),
+    'Ganons Castle Grounds -> OGC Great Fairy Fountain':        ("a #heavy pillar# outside the castle obstructs", None, 'entrance'),
+    'Zoras Fountain -> ZF Great Fairy Fountain':                ("a #fountain wall# hides", None, 'entrance'),
+    'GV Fortress Side -> GV Carpenter Tent':                    ("a #tent in the valley# covers", None, 'entrance'),
+    'Graveyard Warp Pad Region -> Shadow Temple Entryway':      ("at the #back of the Graveyard#, there is", None, 'entrance'),
     'Lake Hylia -> Water Temple Lobby':                         ("deep #under a vast lake#, one can find", None, 'entrance'),
-    'Sacred Forest Meadow -> Forest Temple Lobby':              ("deep #within the Meadow#, one can find", None, 'entrance'),
-    'Gerudo Fortress -> Gerudo Training Grounds Lobby':         ("#thieves# train within", None, 'entrance'),
-    'Zoras Fountain -> Ice Cavern Beginning':                   ("in #a frozen fountain#, an opening leads to", None, 'entrance'),
+    'Gerudo Fortress -> Gerudo Training Grounds Lobby':         ("paying a #fee to the Gerudos# grants access to", None, 'entrance'),
     'Zoras Fountain -> Jabu Jabus Belly Beginning':             ("inside #Jabu Jabu#, one can find", None, 'entrance'),
+    'Kakariko Village -> Bottom of the Well':                   ("a #village well# leads to", None, 'entrance'),
 
-    'Links House':                                              ("Link's House", None, 'region'),
-    'Temple of Time':                                           ("Temple of Time", None, 'region'),
-    'Mido House':                                               ("Mido's house", None, 'region'),
-    'Saria House':                                              ("Saria's House", None, 'region'),
-    'House of Twins':                                           ("the #House of Twins#", None, 'region'),
-    'Know It All House':                                        ("Know-It-All Brothers' House", None, 'region'),
-    'Kokiri Shop':                                              ("the #Kokiri Shop#", None, 'region'),
-    'Lake Hylia Lab':                                           ("the #Lakeside Laboratory#", None, 'region'),
-    'Fishing Hole':                                             ("the #Fishing Pond#", None, 'region'),
-    'Carpenter Tent':                                           ("Carpenters' tent", None, 'region'),
-    'Castle Town Rupee Room':                                   ("the #Guard House#", None, 'region'),
-    'Castle Town Mask Shop':                                    ("the #Happy Mask Shop#", None, 'region'),
-    'Castle Town Bombchu Bowling':                              ("the #Bombchu Bowling#", None, 'region'),
-    'Castle Town Potion Shop':                                  ("the #Market Potion Shop#", None, 'region'),
-    'Castle Town Treasure Chest Game':                          ("the #Treasure Chest Game#", None, 'region'),
-    'Castle Town Bombchu Shop':                                 ("the #Bombchu Shop#", None, 'region'),
-    'Castle Town Man in Green House':                           ("Man in Green's House", None, 'region'),
-    'Windmill':                                                 ("Windmill", None, 'region'),
-    'Carpenter Boss House':                                     ("the #Carpenters' Boss House#", None, 'region'),
-    'House of Skulltula':                                       ("the #House of Skulltulas#", None, 'region'),
-    'Impas House':                                              ("Impa's House", None, 'region'),
-    'Impas House Back':                                         ("Impa's cow cage", None, 'region'),
-    'Odd Medicine Building':                                    ("Granny's Potion Shop", None, 'region'),
-    'Dampes House':                                             ("Dampe's Hut", None, 'region'),
-    'Goron Shop':                                               ("the #Goron Shop#", None, 'region'),
-    'Zora Shop':                                                ("the #Zora Shop#", None, 'region'),
-    'Talon House':                                              ("Talon's House", None, 'region'),
-    'Ingo Barn':                                                ("a #stable#", None, 'region'),
-    'Lon Lon Corner Tower':                                     ("the #Lon Lon Tower#", None, 'region'),
-    'Castle Town Bazaar':                                       ("the #Market Bazaar#", None, 'region'),
-    'Castle Town Shooting Gallery':                             ("Child Shooting Gallery", None, 'region'),
-    'Kakariko Bazaar':                                          ("the #Kakariko Bazaar#", None, 'region'),
-    'Kakariko Shooting Gallery':                                ("Adult Shooting Gallery", None, 'region'),
-    'Colossus Fairy':                                           ("a #Great Fairy Fountain#", None, 'region'),
-    'Hyrule Castle Fairy':                                      ("a #Great Fairy Fountain#", None, 'region'),
-    'Ganons Castle Fairy':                                      ("a #Great Fairy Fountain#", None, 'region'),
-    'Crater Fairy':                                             ("a #Great Fairy Fountain#", None, 'region'),
-    'Mountain Summit Fairy':                                    ("a #Great Fairy Fountain#", None, 'region'),
-    'Zoras Fountain Fairy':                                     ("a #Great Fairy Fountain#", None, 'region'),
-    'Shield Grave':                                             ("a #grave with a free chest#", None, 'region'),
-    'Heart Piece Grave':                                        ("a chest spawned by #Sun's Song#", None, 'region'),
-    'Composer Grave':                                           ("the #Composers' Grave#", None, 'region'),
-    'Dampes Grave':                                             ("Dampe's Grave", None, 'region'),
-    'Mountain Bombable Grotto':                                 ("a solitary #Cow#", None, 'region'),
-    'Castle Storms Grotto':                                     ("a sandy grotto with #fragile walls#", None, 'region'),
-    'Field North Lon Lon Grotto':                               ("a pool guarded by a #Tektite#", None, 'region'),
-    'Field Kakariko Grotto':                                    ("a #Big Skulltula# guarding a Gold one", None, 'region'),
-    'Field Valley Grotto':                                      ("a grotto full of #spider webs#", None, 'region'),
-    'Kakariko Bombable Grotto':                                 ("#ReDeads# guarding a chest", None, 'region'),
-    'Front of Meadow Grotto':                                   ("#Wolfos# guarding a chest", None, 'region'),
-    'Gerudo Valley Octorok Grotto':                             ("an #Octorok# guarding a rich pool", None, 'region'),
+    'KF Links House':                                           ("Link's House", None, 'region'),
+    'Temple of Time':                                           ("the #Temple of Time#", None, 'region'),
+    'KF Midos House':                                           ("Mido's house", None, 'region'),
+    'KF Sarias House':                                          ("Saria's House", None, 'region'),
+    'KF House of Twins':                                        ("the #House of Twins#", None, 'region'),
+    'KF Know It All House':                                     ("Know-It-All Brothers' House", None, 'region'),
+    'KF Kokiri Shop':                                           ("the #Kokiri Shop#", None, 'region'),
+    'LH Lab':                                                   ("the #Lakeside Laboratory#", None, 'region'),
+    'LH Fishing Hole':                                          ("the #Fishing Pond#", None, 'region'),
+    'GV Carpenter Tent':                                        ("the #Carpenters' tent#", None, 'region'),
+    'Market Guard House':                                       ("the #Guard House#", None, 'region'),
+    'Market Mask Shop':                                         ("the #Happy Mask Shop#", None, 'region'),
+    'Market Bombchu Bowling':                                   ("the #Bombchu Bowling Alley#", None, 'region'),
+    'Market Potion Shop':                                       ("the #Market Potion Shop#", None, 'region'),
+    'Market Treasure Chest Game':                               ("the #Treasure Chest Game#", None, 'region'),
+    'Market Bombchu Shop':                                      ("the #Bombchu Shop#", None, 'region'),
+    'Market Man in Green House':                                ("Man in Green's House", None, 'region'),
+    'Kak Windmill':                                             ("the #Windmill#", None, 'region'),
+    'Kak Carpenter Boss House':                                 ("the #Carpenters' Boss House#", None, 'region'),
+    'Kak House of Skulltula':                                   ("the #House of Skulltula#", None, 'region'),
+    'Kak Impas House':                                          ("Impa's House", None, 'region'),
+    'Kak Impas House Back':                                     ("Impa's cow cage", None, 'region'),
+    'Kak Odd Medicine Building':                                ("Granny's Potion Shop", None, 'region'),
+    'Graveyard Dampes House':                                   ("Dampe's Hut", None, 'region'),
+    'GC Shop':                                                  ("the #Goron Shop#", None, 'region'),
+    'ZD Shop':                                                  ("the #Zora Shop#", None, 'region'),
+    'LLR Talons House':                                         ("Talon's House", None, 'region'),
+    'LLR Stables':                                              ("a #stable#", None, 'region'),
+    'LLR Tower':                                                ("the #Lon Lon Tower#", None, 'region'),
+    'Market Bazaar':                                            ("the #Market Bazaar#", None, 'region'),
+    'Market Shooting Gallery':                                  ("a #Slingshot Shooting Gallery#", None, 'region'),
+    'Kak Bazaar':                                               ("the #Kakariko Bazaar#", None, 'region'),
+    'Kak Potion Shop Front':                                    ("the #Kakariko Potion Shop#", None, 'region'),
+    'Kak Potion Shop Back':                                     ("the #Kakariko Potion Shop#", None, 'region'),
+    'Kak Shooting Gallery':                                     ("a #Bow Shooting Gallery#", None, 'region'),
+    'Colossus Great Fairy Fountain':                            ("a #Great Fairy Fountain#", None, 'region'),
+    'HC Great Fairy Fountain':                                  ("a #Great Fairy Fountain#", None, 'region'),
+    'OGC Great Fairy Fountain':                                 ("a #Great Fairy Fountain#", None, 'region'),
+    'DMC Great Fairy Fountain':                                 ("a #Great Fairy Fountain#", None, 'region'),
+    'DMT Great Fairy Fountain':                                 ("a #Great Fairy Fountain#", None, 'region'),
+    'ZF Great Fairy Fountain':                                  ("a #Great Fairy Fountain#", None, 'region'),
+    'Graveyard Shield Grave':                                   ("a #grave with a free chest#", None, 'region'),
+    'Graveyard Heart Piece Grave':                              ("a chest spawned by #Sun's Song#", None, 'region'),
+    'Graveyard Composers Grave':                                ("the #Composers' Grave#", None, 'region'),
+    'Graveyard Dampes Grave':                                   ("Dampe's Grave", None, 'region'),
+    'DMT Cow Grotto':                                           ("a solitary #Cow#", None, 'region'),
+    'HC Storms Grotto':                                         ("a sandy grotto with #fragile walls#", None, 'region'),
+    'HF Tektite Grotto':                                        ("a pool guarded by a #Tektite#", None, 'region'),
+    'HF Near Kak Grotto':                                       ("a #Big Skulltula# guarding a Gold one", None, 'region'),
+    'HF Cow Grotto':                                            ("a grotto full of #spider webs#", None, 'region'),
+    'Kak Redead Grotto':                                        ("#ReDeads# guarding a chest", None, 'region'),
+    'SFM Wolfos Grotto':                                        ("#Wolfos# guarding a chest", None, 'region'),
+    'GV Octorok Grotto':                                        ("an #Octorok# guarding a rich pool", None, 'region'),
     'Deku Theater':                                             ("the #Lost Woods Stage#", None, 'region'),
-    'Zora River Plateau Open Grotto':                           ("a #generic grotto#", None, 'region'),
-    'Top of Crater Grotto':                                     ("a #generic grotto#", None, 'region'),
-    'Mountain Storms Grotto':                                   ("a #generic grotto#", None, 'region'),
-    'Kakariko Back Grotto':                                     ("a #generic grotto#", None, 'region'),
-    'Field West Castle Town Grotto':                            ("a #generic grotto#", None, 'region'),
-    'Field Near Lake Outside Fence Grotto':                     ("a #generic grotto#", None, 'region'),
-    'Remote Southern Grotto':                                   ("a #generic grotto#", None, 'region'),
-    'Kokiri Forest Storms Grotto':                              ("a #generic grotto#", None, 'region'),
-    'Lost Woods Generic Grotto':                                ("a #generic grotto#", None, 'region'),
-    'Field Near Lake Inside Fence Grotto':                      ("a #single Upgrade Deku Scrub#", None, 'region'),
-    'Lost Woods Sales Grotto':                                  ("#2 Deku Scrubs# including an Upgrade one", None, 'region'),
-    'Desert Colossus Grotto':                                   ("2 Deku Scrubs", None, 'region'),
-    'Zora River Storms Grotto':                                 ("2 Deku Scrubs", None, 'region'),
-    'Meadow Storms Grotto':                                     ("2 Deku Scrubs", None, 'region'),
-    'Gerudo Valley Storms Grotto':                              ("2 Deku Scrubs", None, 'region'),
-    'Lake Hylia Grotto':                                        ("3 Deku Scrubs", None, 'region'),
+    'ZR Open Grotto':                                           ("a #generic grotto#", None, 'region'),
+    'DMC Upper Grotto':                                         ("a #generic grotto#", None, 'region'),
+    'DMT Storms Grotto':                                        ("a #generic grotto#", None, 'region'),
+    'Kak Open Grotto':                                          ("a #generic grotto#", None, 'region'),
+    'HF Near Market Grotto':                                    ("a #generic grotto#", None, 'region'),
+    'HF Open Grotto':                                           ("a #generic grotto#", None, 'region'),
+    'HF Southeast Grotto':                                      ("a #generic grotto#", None, 'region'),
+    'KF Storms Grotto':                                         ("a #generic grotto#", None, 'region'),
+    'LW Near Shortcuts Grotto':                                 ("a #generic grotto#", None, 'region'),
+    'HF Inside Fence Grotto':                                   ("a #single Upgrade Deku Scrub#", None, 'region'),
+    'LW Scrubs Grotto':                                         ("#2 Deku Scrubs# including an Upgrade one", None, 'region'),
+    'Colossus Grotto':                                          ("2 Deku Scrubs", None, 'region'),
+    'ZR Storms Grotto':                                         ("2 Deku Scrubs", None, 'region'),
+    'SFM Storms Grotto':                                        ("2 Deku Scrubs", None, 'region'),
+    'GV Storms Grotto':                                         ("2 Deku Scrubs", None, 'region'),
+    'LH Grotto':                                                ("3 Deku Scrubs", None, 'region'),
     'DMC Hammer Grotto':                                        ("3 Deku Scrubs", None, 'region'),
-    'Goron City Grotto':                                        ("3 Deku Scrubs", None, 'region'),
-    'Lon Lon Grotto':                                           ("3 Deku Scrubs", None, 'region'),
-    'Zora River Plateau Bombable Grotto':                       ("a small #Fairy Fountain#", None, 'region'),
-    'Field Far West Castle Town Grotto':                        ("a small #Fairy Fountain#", None, 'region'),
-    'Meadow Fairy Grotto':                                      ("a small #Fairy Fountain#", None, 'region'),
-    'Zoras Domain Storms Grotto':                               ("a small #Fairy Fountain#", None, 'region'),
-    'Gerudo Fortress Storms Grotto':                            ("a small #Fairy Fountain#", None, 'region'),
+    'GC Grotto':                                                ("3 Deku Scrubs", None, 'region'),
+    'LLR Grotto':                                               ("3 Deku Scrubs", None, 'region'),
+    'ZR Fairy Grotto':                                          ("a small #Fairy Fountain#", None, 'region'),
+    'HF Fairy Grotto':                                          ("a small #Fairy Fountain#", None, 'region'),
+    'SFM Fairy Grotto':                                         ("a small #Fairy Fountain#", None, 'region'),
+    'ZD Storms Grotto':                                         ("a small #Fairy Fountain#", None, 'region'),
+    'GF Storms Grotto':                                         ("a small #Fairy Fountain#", None, 'region'),
 
     '1001':                                                     ("Ganondorf 2020!", None, 'junk'),
     '1002':                                                     ("They say that monarchy is a terrible system of governance.", None, 'junk'),
     '1003':                                                     ("They say that Zelda is a poor leader.", None, 'junk'),
     '1004':                                                     ("These hints can be quite useful. This is an exception.", None, 'junk'),
     '1006':                                                     ("They say that all the Zora drowned in Wind Waker.", None, 'junk'),
-    '1007':                                                     ("They say that PJ64 is a terrible emulator.", None, 'junk'),
     '1008':                                                     ("'Member when Ganon was a blue pig?^I 'member.", None, 'junk'),
     '1009':                                                     ("One who does not have Triforce can't go in.", None, 'junk'),
     '1010':                                                     ("Save your future, end the Happy Mask Salesman.", None, 'junk'),
@@ -382,7 +420,19 @@ hintTable = {
     '1055':                                                     ("They say that invisible ghosts can be exposed with Deku Nuts.", None, 'junk'),
     '1056':                                                     ("They say that the real Phantom Ganon is bright and loud.", None, 'junk'),
     '1057':                                                     ("They say that walking backwards is very fast.", None, 'junk'),
-    '1058':                                                     ("They say that leaping above the Castle Town entrance enriches most children.", None, 'junk'),
+    '1058':                                                     ("They say that leaping above the Market entrance enriches most children.", None, 'junk'),
+    '1059':                                                     ("They say that looking into darkness may find darkness looking back into you.", None, 'junk'),
+    '1060':                                                     ("You found a spiritual Stone! By which I mean, I worship Nayru.", None, 'junk'),
+    '1061':                                                     ("They say that the stick is mightier than the sword.", None, 'junk'),
+    '1062':                                                     ("Open your eyes.^Open your eyes.^Wake up, @.", None, 'junk'),
+    '1063':                                                     ("They say that arbitrary code execution leads to the credits sequence.", None, 'junk'),
+    '1064':                                                     ("They say that Twinrova always casts the same spell the first three times.", None, 'junk'),
+    '1065':                                                     ("They say that the Development branch may be unstable.", None, 'junk'),
+    '1066':                                                     ("You're playing a Randomizer. I'm randomized!^Here's a random number:  #4#.&Enjoy your Randomizer!", None, 'junk'),
+    '1067':                                                     ("They say Ganondorf's bolts can be reflected with glass or steel.", None, 'junk'),
+    '1068':                                                     ("They say Ganon's tail is vulnerable to nuts, arrows, swords, explosives, hammers...^...sticks, seeds, boomerangs...^...rods, shovels, iron balls, angry bees...", None, 'junk'),
+    '1069':                                                     ("They say that you're wasting time reading this hint, but I disagree. Talk to me again!", None, 'junk'),
+    '1070':                                                     ("They say Ganondorf knows where to find the instrument of his doom.", None, 'junk'),
 
     'Deku Tree':                                                ("an ancient tree", "Deku Tree", 'dungeonName'),
     'Dodongos Cavern':                                          ("an immense cavern", "Dodongo's Cavern", 'dungeonName'),
@@ -445,15 +495,16 @@ def hintExclusions(world, clear_cache=False):
     location_hints = []
     for name in hintTable:
         hint = getHint(name, world.clearer_hints)
-        if hint.type in ['always',
-                         'minigame',
-                         'overworld',
-                         'dungeon',
-                         'song']:
+        if any(item in hint.type for item in 
+                ['always',
+                 'sometimes',
+                 'overworld',
+                 'dungeon',
+                 'song']):
             location_hints.append(hint)
 
     for hint in location_hints:
-        if hint.name not in world_location_names:
+        if hint.name not in world_location_names and hint.name not in hintExclusions.exclusions:
             hintExclusions.exclusions.append(hint.name)
 
     return hintExclusions.exclusions

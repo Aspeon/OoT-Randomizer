@@ -1,4 +1,4 @@
-#Much of this is heavily inspired from and/or based on az64's MM randomizer
+#Much of this is heavily inspired from and/or based on az64's / Deathbasket's MM randomizer
 
 import random
 import os
@@ -6,55 +6,87 @@ import os
 
 # Format: (Title, Sequence ID)
 bgm_sequence_ids = [
-    ('Hyrule Field', 0x02),
-    ('Dodongos Cavern', 0x18),
-    ('Kakariko Adult', 0x19),
-    ('Battle', 0x1A),
-    ('Boss Battle', 0x1B),
-    ('Inside Deku Tree', 0x1C),
-    ('Market', 0x1D),
-    ('Title Theme', 0x1E),
-    ('House', 0x1F),
-    ('Jabu Jabu', 0x26),
-    ('Kakariko Child', 0x27),
-    ('Fairy Fountain', 0x28),
-    ('Zelda Theme', 0x29),
-    ('Fire Temple', 0x2A),
-    ('Forest Temple', 0x2C),
-    ('Castle Courtyard', 0x2D),
-    ('Ganondorf Theme', 0x2E),
-    ('Lon Lon Ranch', 0x2F),
-    ('Goron City', 0x30),
-    ('Miniboss Battle', 0x38),
-    ('Temple of Time', 0x3A),
-    ('Kokiri Forest', 0x3C),
-    ('Lost Woods', 0x3E),
-    ('Spirit Temple', 0x3F),
-    ('Horse Race', 0x40),
-    ('Ingo Theme', 0x42),
-    ('Fairy Flying', 0x4A),
-    ('Deku Tree', 0x4B),
-    ('Windmill Hut', 0x4C),
-    ('Shooting Gallery', 0x4E),
-    ('Sheik Theme', 0x4F),
-    ('Zoras Domain', 0x50),
-    ('Shop', 0x55),
-    ('Chamber of the Sages', 0x56),
-    ('Ice Cavern', 0x58),
-    ('Kaepora Gaebora', 0x5A),
-    ('Shadow Temple', 0x5B),
-    ('Water Temple', 0x5C),
-    ('Gerudo Valley', 0x5F),
-    ('Potion Shop', 0x60),
-    ('Kotake and Koume', 0x61),
-    ('Castle Escape', 0x62),
-    ('Castle Underground', 0x63),
-    ('Ganondorf Battle', 0x64),
-    ('Ganon Battle', 0x65),
-    ('Fire Boss', 0x6B),
-    ('Mini-game', 0x6C)
+    ("Hyrule Field", 0x02),
+    ("Dodongos Cavern", 0x18),
+    ("Kakariko Adult", 0x19),
+    ("Battle", 0x1A),
+    ("Boss Battle", 0x1B),
+    ("Inside Deku Tree", 0x1C),
+    ("Market", 0x1D),
+    ("Title Theme", 0x1E),
+    ("House", 0x1F),
+    ("Jabu Jabu", 0x26),
+    ("Kakariko Child", 0x27),
+    ("Fairy Fountain", 0x28),
+    ("Zelda Theme", 0x29),
+    ("Fire Temple", 0x2A),
+    ("Forest Temple", 0x2C),
+    ("Castle Courtyard", 0x2D),
+    ("Ganondorf Theme", 0x2E),
+    ("Lon Lon Ranch", 0x2F),
+    ("Goron City", 0x30),
+    ("Miniboss Battle", 0x38),
+    ("Temple of Time", 0x3A),
+    ("Kokiri Forest", 0x3C),
+    ("Lost Woods", 0x3E),
+    ("Spirit Temple", 0x3F),
+    ("Horse Race", 0x40),
+    ("Ingo Theme", 0x42),
+    ("Fairy Flying", 0x4A),
+    ("Deku Tree", 0x4B),
+    ("Windmill Hut", 0x4C),
+    ("Shooting Gallery", 0x4E),
+    ("Sheik Theme", 0x4F),
+    ("Zoras Domain", 0x50),
+    ("Shop", 0x55),
+    ("Chamber of the Sages", 0x56),
+    ("Ice Cavern", 0x58),
+    ("Kaepora Gaebora", 0x5A),
+    ("Shadow Temple", 0x5B),
+    ("Water Temple", 0x5C),
+    ("Gerudo Valley", 0x5F),
+    ("Potion Shop", 0x60),
+    ("Kotake and Koume", 0x61),
+    ("Castle Escape", 0x62),
+    ("Castle Underground", 0x63),
+    ("Ganondorf Battle", 0x64),
+    ("Ganon Battle", 0x65),
+    ("Fire Boss", 0x6B),
+    ("Mini-game", 0x6C)
 ]
 
+fanfare_sequence_ids = [
+    ("Game Over", 0x20),
+    ("Boss Defeated", 0x21),
+    ("Item Get", 0x22),
+    ("Ganondorf Appears", 0x23),
+    ("Heart Container Get", 0x24),
+    ("Treasure Chest", 0x2B),
+    ("Spirit Stone Get", 0x32),
+    ("Heart Piece Get", 0x39),
+    ("Escape from Ranch", 0x3B),
+    ("Learn Song", 0x3D),
+    ("Epona Race Goal", 0x41),
+    ("Medallion Get", 0x43),
+    ("Zelda Turns Around", 0x51),
+    ("Master Sword", 0x53),
+    ("Door of Time", 0x59)
+]
+
+ocarina_sequence_ids = [
+    ("Prelude of Light", 0x25),
+    ("Bolero of Fire", 0x33),
+    ("Minuet of Forest", 0x34),
+    ("Serenade of Water", 0x35),
+    ("Requiem of Spirit", 0x36),
+    ("Nocturne of Shadow", 0x37),
+    ("Saria's Song", 0x44),
+    ("Epona's Song", 0x45),
+    ("Zelda's Lullaby", 0x46),
+    ("Sun's Song", 0x47),
+    ("Song of Time", 0x48),
+    ("Song of Storms", 0x49)
+]
 
 # Represents the information associated with a sequence, aside from the sequence data itself
 class TableEntry(object):
@@ -75,9 +107,9 @@ class Sequence(object):
         self.data = []
 
 
-def process_sequences(rom, sequences, target_sequences):
+def process_sequences(rom, sequences, target_sequences, ids, seq_type = 'bgm'):
     # Process vanilla music data
-    for bgm in bgm_sequence_ids:
+    for bgm in ids:
         # Get sequence metadata
         name = bgm[0]
         cosmetic_name = name
@@ -96,34 +128,37 @@ def process_sequences(rom, sequences, target_sequences):
 
     # Process music data in data/Music/
     # Each sequence requires a valid .seq sequence file and a .meta metadata file
-    # Current .meta format: Cosmetic Name\nInstrument Set
-    for f in os.listdir('data/Music'):
-        fname = os.fsdecode(f)
-        # Find meta file and check if corresponding seq file exists
-        if fname.endswith('.meta') and os.path.isfile('data/Music/' + fname.split('.')[0] + '.seq'):
-            # Read meta info
-            try:
-                with open('data/Music/' + fname, 'r') as stream:
-                    lines = stream.readlines()
-                # Strip newline(s) which doesn't like to work for some reason
-                for line in lines:
-                    line = line.rstrip()
-            except FileNotFoundError as ex:
-                raise FileNotFoundError('No meta file for: "' + fname + '". This should never happen')
+    # Current .meta format: Cosmetic Name\nInstrument Set\nPool
+    for dirpath, _, filenames in os.walk(u'./data/Music'):
+        for fname in filenames:
+            # Find meta file and check if corresponding seq file exists
+            if fname.endswith('.meta') and os.path.isfile(os.path.join(dirpath, fname.split('.')[0] + '.seq')):
+                # Read meta info
+                try:
+                    with open(os.path.join(dirpath, fname), 'r') as stream:
+                        lines = stream.readlines()
+                    # Strip newline(s) which doesn't like to work for some reason
+                    for line in lines:
+                        line = line.rstrip()
+                except FileNotFoundError as ex:
+                    raise FileNotFoundError('No meta file for: "' + fname + '". This should never happen')
 
-            # Create new sequence
-            seq = TableEntry(fname.split('.')[0], lines[0], instrument_set = int(lines[1], 16))
+                # Create new sequence, checking third line for correct type
+                if (len(lines) > 2 and (lines[2].lower().rstrip() == seq_type.lower() or lines[2] == '')) or (len(lines) <= 2 and seq_type == 'bgm'):
+                    seq = TableEntry(os.path.join(dirpath, fname.split('.')[0]), lines[0], instrument_set = int(lines[1], 16))
 
-            if seq.instrument_set < 0x00 or seq.instrument_set > 0x24:
-                raise Exception('Sequence instrument must be in range [0x00, 0x25]')
+                    if seq.instrument_set < 0x00 or seq.instrument_set > 0x25:
+                        raise Exception('Sequence instrument must be in range [0x00, 0x25]')
 
-            sequences.append(seq)
+                    sequences.append(seq)
 
     return sequences, target_sequences
 
 
 def shuffle_music(sequences, target_sequences, log):
     # Shuffle the sequences
+    if len(sequences) < len(target_sequences):
+        raise Exception("Not enough custom music/fanfares to omit base Ocarina of Time sequences.")
     random.shuffle(sequences)
 
     for i in range(len(target_sequences)):
@@ -191,7 +226,7 @@ def rebuild_sequences(rom, sequences, log):
             else:
                 # Read sequence info
                 try:
-                    with open('data/Music/' + s.name + '.seq', 'rb') as stream:
+                    with open(s.name + '.seq', 'rb') as stream:
                         new_entry.data = bytearray(stream.read())
                     new_entry.size = len(new_entry.data)
                     if new_entry.size <= 0x10:
@@ -207,6 +242,10 @@ def rebuild_sequences(rom, sequences, log):
 
         # Concatenate the full audio sequence and the new sequence data
         if new_entry.data != [] and new_entry.size > 0:
+            # Align sequences to 0x10
+            if new_entry.size % 0x10 != 0:
+                new_entry.data.extend(bytearray(0x10 - (new_entry.size % 0x10)))
+                new_entry.size += 0x10 - (new_entry.size % 0x10)
             new_audio_sequence.extend(new_entry.data)
             # Increment the current address by the size of the new sequence
             address += new_entry.size
@@ -257,10 +296,10 @@ def rebuild_sequences(rom, sequences, log):
     return log
 
 
-def shuffle_pointers_table(rom, log):
+def shuffle_pointers_table(rom, ids, log):
     # Read in all the Music data
     bgm_data = []
-    for bgm in bgm_sequence_ids:
+    for bgm in ids:
         bgm_sequence = rom.read_bytes(0xB89AE0 + (bgm[1] * 0x10), 0x10)
         bgm_instrument = rom.read_int16(0xB89910 + 0xDD + (bgm[1] * 2))
         bgm_data.append((bgm[0], bgm_sequence, bgm_instrument))
@@ -269,7 +308,7 @@ def shuffle_pointers_table(rom, log):
     random.shuffle(bgm_data)
 
     # Write Music data back in random ordering
-    for bgm in bgm_sequence_ids:
+    for bgm in ids:
         bgm_name, bgm_sequence, bgm_instrument = bgm_data.pop()
         rom.write_bytes(0xB89AE0 + (bgm[1] * 0x10), bgm_sequence)
         rom.write_int16(0xB89910 + 0xDD + (bgm[1] * 2), bgm_instrument)
@@ -282,31 +321,62 @@ def shuffle_pointers_table(rom, log):
 
 def randomize_music(rom, settings):
     log = {}
+    sequences = []
+    target_sequences = []
+    fanfare_sequences = []
+    fanfare_target_sequences = []
 
+    # Include ocarina songs in fanfare pool if checked
+    ff_ids = []
+    ff_ids.extend(fanfare_sequence_ids)
+    if settings.ocarina_fanfares:
+        ff_ids.extend(ocarina_sequence_ids)
+
+    # If not creating patch file, shuffle audio sequences. Otherwise, shuffle pointer table
     if settings.compress_rom != 'Patch':
-        # Create empty sequence metadata arrays
-        sequences = []
-        target_sequences = []
+        if settings.background_music in ['random', 'random_custom_only']:
+            sequences, target_sequences = process_sequences(rom, sequences, target_sequences, bgm_sequence_ids)
+            if settings.background_music == 'random_custom_only':
+                sequences = [seq for seq in sequences if seq.cosmetic_name not in [x[0] for x in bgm_sequence_ids]]
+            sequences, log = shuffle_music(sequences, target_sequences, log)
 
-        sequences, target_sequences = process_sequences(rom, sequences, target_sequences)
-        sequences, log = shuffle_music(sequences, target_sequences, log)
-        log = rebuild_sequences(rom, sequences, log)
+        if settings.fanfares in ['random', 'random_custom_only']:
+            fanfare_sequences, fanfare_target_sequences = process_sequences(rom, fanfare_sequences, fanfare_target_sequences, ff_ids, 'fanfare')
+            if settings.fanfares == 'random_custom_only':
+                fanfare_sequences = [seq for seq in fanfare_sequences if seq.cosmetic_name not in [x[0] for x in fanfare_sequence_ids]]
+            fanfare_sequences, log = shuffle_music(fanfare_sequences, fanfare_target_sequences, log)
+
+        log = rebuild_sequences(rom, sequences + fanfare_sequences, log)
+
+        if settings.background_music == 'off':
+            disable_music(rom, bgm_sequence_ids)
+        if settings.fanfares == 'off':
+            disable_music(rom, ff_ids)
+
     else:
-        log = shuffle_pointers_table(rom, log)
+        if settings.background_music == 'random':
+            log = shuffle_pointers_table(rom, bgm_sequence_ids, log)
+        elif settings.background_music == 'off':
+            disable_music(rom, bgm_sequence_ids)
+
+        if settings.fanfares == 'random':
+            log = shuffle_pointers_table(rom, ff_ids, log)
+        elif settings.fanfares == 'off':
+            disable_music(rom, ff_ids)
 
     return log
 
 
-def disable_music(rom):
+def disable_music(rom, ids):
     # First track is no music
     blank_track = rom.read_bytes(0xB89AE0 + (0 * 0x10), 0x10)
-    for bgm in bgm_sequence_ids:
+    for bgm in ids:
         rom.write_bytes(0xB89AE0 + (bgm[1] * 0x10), blank_track)
 
 
 def restore_music(rom):
     # Restore all music from original
-    for bgm in bgm_sequence_ids:
+    for bgm in bgm_sequence_ids + fanfare_sequence_ids + ocarina_sequence_ids:
         bgm_sequence = rom.original.read_bytes(0xB89AE0 + (bgm[1] * 0x10), 0x10)
         rom.write_bytes(0xB89AE0 + (bgm[1] * 0x10), bgm_sequence)
         bgm_instrument = rom.original.read_int16(0xB89910 + 0xDD + (bgm[1] * 2))
